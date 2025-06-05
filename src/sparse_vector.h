@@ -1,10 +1,6 @@
 #include <cmath>
+#include <format>
 #include <unordered_map>
-#include <vector>
-
-#include <boost/algorithm/string/join.hpp>
-#include <boost/iterator/transform_iterator.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 
 template <typename T> class SparseVector {
 private:
@@ -54,24 +50,13 @@ public:
     return dot;
   }
 
-  // Subscript
-  T &operator[](size_t i) {
-    // TODO Pollution possible without a const subscript
-    return data[i];
-  }
-
   // Printing (in the style of Python dictionary)
-  std::string to_string() const {
-    using std::to_string;
-
-    auto pair_to_string = [](const auto &p) {
-      return to_string(p.first) + ": " + to_string(p.second);
-    };
-    return "{" +
-           boost::algorithm::join(
-               data | boost::adaptors::transformed(pair_to_string), ", ") +
-           "}";
+  friend std::ostream &operator<<(std::ostream &os, const SparseVector &vec) {
+    return os << std::format("{}", vec.data);
   }
+
+  // Subscript
+  T &operator[](size_t i) { return data[i]; }
 
   // Norm
   float norm(int ord) const {

@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++2a -O2 -Wall -Wextra -Wpedantic -Werror
+CFLAGS = -std=c++23 -O2 -Wall -Wextra -Wpedantic -Werror
 
 all: sparse_vector_test
 
