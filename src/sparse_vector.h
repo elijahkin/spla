@@ -5,11 +5,13 @@
 template <typename T> class SparseVector {
 private:
   std::unordered_map<size_t, T> data;
+  size_t shape;
+
+  SparseVector(size_t shape) : shape(shape) {}
 
 public:
-  SparseVector() {}
+  static SparseVector<T> zeros(size_t shape) { return SparseVector<T>(shape); }
 
-  // Scalar multiplication
   SparseVector &operator*=(T rhs) {
     // TODO We'll have to change this to support types with zero divisors
     if (rhs == T{}) {
@@ -23,7 +25,6 @@ public:
     return *this;
   }
 
-  // Addition
   SparseVector &operator+=(const SparseVector &rhs) {
     for (const auto &[key, val] : rhs.data) {
       data[key] += val;
@@ -35,7 +36,6 @@ public:
     return *this;
   }
 
-  // Inner product
   friend T inner(const SparseVector &lhs, const SparseVector &rhs) {
     // TODO Canonicalize so that lhs is guaranteed to be the smaller map
 
@@ -50,17 +50,14 @@ public:
     return dot;
   }
 
-  // Printing (in the style of Python dictionary)
   friend std::ostream &operator<<(std::ostream &os, const SparseVector &vec) {
     return os << std::format("{}", vec.data);
   }
 
-  // Subscript
   T &operator[](size_t i) { return data[i]; }
 
-  // Norm
-  float norm(int ord) const {
-    float sum = 0;
+  double norm(int ord) const {
+    double sum = 0;
     for (const auto &[_, val] : data) {
       sum += pow(abs(val), ord);
     }
