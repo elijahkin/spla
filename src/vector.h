@@ -8,7 +8,8 @@ namespace spla {
 
 // Defines the requirements to be the template type for a `Vector`. In
 // particular, it must support addition, multiplication, and absolute value.
-template <typename T> concept Scalar = requires(T a, T b) {
+template <typename T>
+concept Scalar = requires(T a, T b) {
   a += b;
   a *= b;
   abs(a);
@@ -16,15 +17,20 @@ template <typename T> concept Scalar = requires(T a, T b) {
 
 // Implements a sparse vector of length `shape_` represented internally as a
 // map. If an index `i` between 0 and `shape_` is not present as a key in the
-// map, that entry is implicitly 0.
+// map, that entry is implicitly `default_value_`.
 template <Scalar T> class Vector {
 public:
-  static Vector<T> zeros(size_t shape) { return Vector<T>(shape); }
+  static Vector<T> fill(size_t shape, T default_value) {
+    return Vector<T>(shape, default_value);
+  }
 
-  Vector &operator*=(T rhs) {
-    // TODO(elijahkin) Must change this to support types with zero divisors
+  static Vector<T> zeros(size_t shape) { return fill(shape, 0); }
+
+  static Vector<T> ones(size_t shape) { return fill(shape, 1); }
+
+  Vector<T> &operator*=(T rhs) {
+    default_value_ *= rhs;
     if (rhs == T{}) {
-      // Maintain sparsity in the event we multiply by zero
       data_.clear();
     } else {
       for (auto &[_, val] : data_) {
@@ -34,11 +40,12 @@ public:
     return *this;
   }
 
-  Vector &operator+=(const Vector &rhs) {
-    for (const auto &[key, val] : rhs.data_) {
-      data_[key] += val;
-      if (data_[key] == T{}) {
-        // Maintain sparsity in the event we added additive inverse
+  Vector<T> &operator+=(const Vector &rhs) {
+    default_value_ += rhs.default_value_;
+    for (const auto &[key, rhs_val] : rhs.data_) {
+      auto &val = data_[key];
+      val += rhs_val;
+      if (val == default_value_) {
         data_.erase(key);
       }
     }
@@ -61,10 +68,45 @@ public:
     return os << std::format("{}", vec.data_);
   }
 
-  T &operator[](size_t i) { return data_[i]; }
+  size_t sparsity() const { return data_.size(); }
+
+  // Handles reading and writing of vector elements. This is the object returned
+  // by `operator[]`, which is necessary to ensure that default values are not
+  // accidently written to `data_`.
+  class SubscriptProxy {
+  public:
+    SubscriptProxy(Vector<T> *vec, size_t i) : vec_(vec), i_(i) {}
+
+    // Implements the behavior for `vec[i] = val`.
+    // TODO(elijahkin) Is this the right return type for this?
+    // TODO(elijahkin) Should we prevent writing default values?
+    SubscriptProxy &operator=(const T &val) {
+      vec_->data_[i_] = val;
+      return *this;
+    }
+
+    // Casts a `SubscriptProxy` to the type `T`. If the index `i_` is present in
+    // `vec_->data_`, it returns the value at that index; otherwise, it returns
+    // the default value of `vec_`.
+    operator T() const {
+      if (auto it = vec_->data_.find(i_); it != vec_->data_.end()) {
+        return it->second;
+      }
+      return vec_->default_value_;
+    }
+
+  private:
+    Vector<T> *vec_;
+    size_t i_;
+  };
+
+  SubscriptProxy operator[](size_t i) {
+    // TODO(elijahkin) Throw an exception if index is out of bounds
+    return SubscriptProxy(this, i);
+  }
 
   double norm(int ord) const {
-    double sum = 0;
+    double sum = (shape_ - data_.size()) * pow(abs(default_value_), ord);
     for (const auto &[_, val] : data_) {
       sum += pow(abs(val), ord);
     }
@@ -74,8 +116,10 @@ public:
 private:
   std::unordered_map<size_t, T> data_;
   size_t shape_;
+  T default_value_;
 
-  Vector(size_t shape) : shape_(shape) {}
+  Vector(size_t shape, T default_value)
+      : shape_(shape), default_value_(default_value) {}
 };
 
 } // namespace spla
