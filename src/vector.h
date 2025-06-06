@@ -41,6 +41,10 @@ public:
   }
 
   Vector<T> &operator+=(const Vector &rhs) {
+    if (shape_ != rhs.shape_) {
+      throw std::invalid_argument(
+          "Addition expects operands of the same shape.");
+    }
     default_value_ += rhs.default_value_;
     for (const auto &[key, rhs_val] : rhs.data_) {
       auto &val = data_[key];
@@ -53,6 +57,10 @@ public:
   }
 
   friend T inner(const Vector &lhs, const Vector &rhs) {
+    if (lhs.shape_ != rhs.shape_) {
+      throw std::invalid_argument(
+          "Inner product expects operands of the same shape");
+    }
     // TODO(elijahkin) Canonicalize to always iterate over the smaller map
     T dot = T{};
     for (const auto &[key, lhs_val] : lhs.data_) {
@@ -101,7 +109,10 @@ public:
   };
 
   SubscriptProxy operator[](size_t i) {
-    // TODO(elijahkin) Throw an exception if index is out of bounds
+    // TODO(elijahkin) Should we allow negative indices?
+    if (i < 0 || i >= shape_) {
+      throw std::out_of_range("Index out of range");
+    }
     return SubscriptProxy(this, i);
   }
 
