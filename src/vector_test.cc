@@ -1,10 +1,11 @@
+#include "vector.h"
+
 #include <cassert>
+#include <cmath>
 #include <iostream>
 
-#include "sparse_vector.h"
-
-static void basic_sparse_vector() {
-  auto v = SparseVector<int>::zeros(10);
+static void vector_basics() {
+  auto v = spla::Vector<int>::zeros(10);
   assert(std::abs(v.norm(2) - 0) < 1e-6);
 
   v[1] = -7;
@@ -13,7 +14,7 @@ static void basic_sparse_vector() {
   assert(v[1] == -14);
   assert(v[3] == 8);
 
-  auto w = SparseVector<int>::zeros(20);
+  auto w = spla::Vector<int>::zeros(20);
   w[3] = 2;
   w[5] = 1;
   assert(w[3] == 2);
@@ -34,6 +35,6 @@ static void basic_sparse_vector() {
 }
 
 int main() {
-  basic_sparse_vector();
+  vector_basics();
   return 0;
 }
