@@ -3,23 +3,31 @@
 #include <iostream>
 #include <unordered_map>
 
-#define EXPECT_OK(expr)                                                        \
+// Defines simple macros for testing in C++, heavily inspired by Google Test.
+
+// Asserts that two values are exactly equal.
+#define EXPECT_EQ(val1, val2) assert((val1) == (val2))
+
+// Asserts that the absolute difference of two floating-point values does not
+// exceed `abs_err`.
+#define EXPECT_NEAR(val1, val2, abs_err)                                       \
+  assert(std::abs((val1) - (val2)) < abs_err)
+
+// Asserts that `stmt` does not throw any exceptions.
+#define EXPECT_NO_THROW(stmt)                                                  \
   try {                                                                        \
-    expr;                                                                      \
+    stmt;                                                                      \
   } catch (const std::exception &e) {                                          \
     assert(false);                                                             \
   }
 
-#define EXPECT_NOT_OK(expr)                                                    \
+// Asserts that `stmt` throws an exception of type `exc_type`.
+#define EXPECT_THROW(stmt, exc_type)                                           \
   try {                                                                        \
-    expr;                                                                      \
+    stmt;                                                                      \
     assert(false);                                                             \
-  } catch (const std::exception &e) {                                          \
+  } catch (const exc_type &e) {                                                \
   }
-
-#define ASSERT_EQ(a, b) assert((a) == (b))
-
-#define ASSERT_ALMOST_EQ(a, b) assert(std::abs((a) - (b)) < 1e-6)
 
 #define TEST(name) static void name()
 
@@ -36,7 +44,7 @@ void RunAll(std::unordered_map<std::string, void (*)()> tests) {
       ptr();
       std::cout << kGreenText << "PASSED: ";
     } catch (const std::exception &e) {
-      std::cout << kRedText << "FAILED (" << e.what() << "): ";
+      std::cout << kRedText << "FAILED: ";
     }
     std::cout << kResetText << name << std::endl;
   }

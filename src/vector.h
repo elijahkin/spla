@@ -109,8 +109,9 @@ public:
   };
 
   SubscriptProxy operator[](size_t i) {
-    // TODO(elijahkin) Should we allow negative indices?
-    if (i < 0 || i >= shape_) {
+    // TODO(elijahkin) Should we allow negative indices? If so, we will have to
+    // slightly redesign given that size_t is unsigned.
+    if (i >= shape_) {
       throw std::out_of_range("Index out of range");
     }
     return SubscriptProxy(this, i);
