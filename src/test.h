@@ -1,6 +1,6 @@
 #include <cmath>
 #include <iostream>
-#include <unordered_map>
+#include <vector>
 
 // This file is a simple testing framework for C++, taking heavy inspiration
 // from Google Test. We first define several macros for making assertions within
@@ -53,7 +53,7 @@ const char kGreenText[] = "\033[32m";
 class TestSuite {
 public:
   static void Register(const std::string &name, void (*test_func)()) {
-    tests[name] = test_func;
+    tests.push_back({name, test_func});
   }
 
   static void RunAll() {
@@ -72,7 +72,7 @@ public:
   }
 
 private:
-  static inline std::unordered_map<std::string, void (*)()> tests;
+  static inline std::vector<std::pair<std::string, void (*)()>> tests;
 };
 
 // Registers a test function with the `TestSuite`.

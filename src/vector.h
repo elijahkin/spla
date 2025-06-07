@@ -30,6 +30,19 @@ public:
 
   static Vector<T> ones(Shape shape) { return fill(shape, 1); }
 
+  // This is needed in order for the conversion constructor to access the
+  // private fields of Vector<U>.
+  template <Arithmetic U> friend class Vector;
+
+  template <Arithmetic U>
+  explicit Vector(const Vector<U> &other)
+      : shape_(other.shape_),
+        default_value_(static_cast<T>(other.default_value_)) {
+    for (const auto &[key, val] : other.data_) {
+      data_[key] = static_cast<T>(val);
+    }
+  }
+
   Vector<T> &operator*=(T rhs) {
     default_value_ *= rhs;
     if (rhs == T{}) {
@@ -58,6 +71,18 @@ public:
     return *this;
   }
 
+  Vector<T> &operator+=(T rhs) { return *this += fill(shape_, rhs); }
+
+  // Implements the behavior for `vec1 == vec2`, which are considered equal if
+  // they have the same shape, default value, and data. The behavior for `vec1
+  // != vec2` is also inferred from this.
+  friend bool operator==(const Vector &lhs, const Vector &rhs) {
+    return lhs.shape_ == rhs.shape_ &&
+           lhs.default_value_ == rhs.default_value_ && lhs.data_ == rhs.data_;
+  }
+
+  friend Vector operator+(Vector lhs, const Vector &rhs) { return lhs += rhs; }
+
   friend T inner(const Vector &lhs, const Vector &rhs) {
     if (lhs.shape_ != rhs.shape_) {
       throw std::invalid_argument(
@@ -73,6 +98,8 @@ public:
     }
     return dot;
   }
+
+  // TODO(elijahkin) Should we implement a spaceship operator?
 
   friend std::ostream &operator<<(std::ostream &os, const Vector &vec) {
     return os << std::format("{}", vec.data_);

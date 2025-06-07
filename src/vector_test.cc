@@ -71,31 +71,69 @@ TEST(ShapeExceptions) {
   EXPECT_THROW(v2[3], std::out_of_range);
 }
 
-// TODO(elijahkin) Uncomment once Vector supports assignment and equality
+TEST(Equality) {
+  auto v1 = spla::Vector<int>::zeros(5);
+  auto v2 = spla::Vector<int>::zeros(5);
+  auto v3 = spla::Vector<int>::ones(5);
+
+  EXPECT_EQ(v1, v2);
+  EXPECT_NE(v1, v3);
+  EXPECT_NE(v2, v3);
+
+  v2[0] = 1;
+  EXPECT_NE(v1, v2);
+}
+
+TEST(NonmodifyingAddition) {
+  auto one = spla::Vector<int>::ones(3);
+  auto two = spla::Vector<int>::fill(3, 2);
+  auto three = spla::Vector<int>::fill(3, 3);
+
+  auto v = one + two;
+  EXPECT_EQ(v, three);
+}
+
+TEST(TypeConversion) {
+  auto one_int = spla::Vector<int>::ones(3);
+  auto one_double = spla::Vector<double>::ones(3);
+  auto two_double = spla::Vector<double>::fill(3, 2);
+
+  auto v = static_cast<spla::Vector<double>>(one_int);
+  EXPECT_EQ(v, one_double);
+  EXPECT_NE(v, two_double);
+}
+
+TEST(AdditionWithScalar) {
+  auto v = spla::Vector<int>::zeros(3);
+  auto one = spla::Vector<int>::ones(3);
+  auto two = spla::Vector<int>::fill(3, 2);
+
+  EXPECT_NE(v, one);
+  EXPECT_NE(v, two);
+
+  v += 1;
+  EXPECT_EQ(v, one);
+  EXPECT_NE(v, two);
+
+  v += 1;
+  EXPECT_NE(v, one);
+  EXPECT_EQ(v, two);
+}
+
 TEST(AssignmentAndEquality) {
   auto v = spla::Vector<int>::ones(3);
   auto one = v;
   auto two = spla::Vector<int>::fill(3, 2);
-  // EXPECT_EQ(v, one);
-  // EXPECT_NE(v, two);
+  EXPECT_EQ(v, one);
+  EXPECT_NE(v, two);
 
   v *= 2;
-  // EXPECT_NE(v, one);
-  // EXPECT_EQ(v, two);
+  EXPECT_NE(v, one);
+  EXPECT_EQ(v, two);
 
   // v -= one;
-  // EXPECT_EQ(v, one);
-  // EXPECT_NE(v, two);
-}
-
-// TODO(elijahkin) Uncomment once Vector supports non-modifying operations
-TEST(NonmodifyingAndUnlikeTypes) {
-  auto one_int = spla::Vector<int>::ones(3);
-  auto one_float = spla::Vector<float>::ones(3);
-  auto two_double = spla::Vector<double>::fill(3, 2);
-
-  // auto two = one_int + one_float;
-  // EXPECT_NEAR(two.norm(2), two_double.norm(2), 1e-6);
+  EXPECT_EQ(v, one);
+  EXPECT_NE(v, two);
 }
 
 int main() {
