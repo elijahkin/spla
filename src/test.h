@@ -8,6 +8,9 @@
 // Asserts that two values are exactly equal.
 #define EXPECT_EQ(val1, val2) assert((val1) == (val2))
 
+// Asserts that two values are not exactly equal.
+#define EXPECT_NE(val1, val2) assert((val1) != (val2))
+
 // Asserts that the absolute difference of two floating-point values does not
 // exceed `abs_err`.
 #define EXPECT_NEAR(val1, val2, abs_err)                                       \
@@ -29,23 +32,40 @@
   } catch (const exc_type &e) {                                                \
   }
 
-#define TEST(name) static void name()
-
 // Human readable names for ANSI escape codes
-const std::string kResetText = "\033[0m";
-const std::string kBoldText = "\033[1m";
-const std::string kRedText = "\033[31m";
-const std::string kGreenText = "\033[32m";
+const char kResetText[] = "\033[0m";
+const char kBoldText[] = "\033[1m";
+const char kRedText[] = "\033[31m";
+const char kGreenText[] = "\033[32m";
 
-void RunAll(std::unordered_map<std::string, void (*)()> tests) {
-  for (const auto &[name, ptr] : tests) {
-    std::cout << kBoldText;
-    try {
-      ptr();
-      std::cout << kGreenText << "PASSED: ";
-    } catch (const std::exception &e) {
-      std::cout << kRedText << "FAILED: ";
-    }
-    std::cout << kResetText << name << std::endl;
+class TestSuite {
+public:
+  static void Register(const std::string &name, void (*test_func)()) {
+    tests[name] = test_func;
   }
-}
+
+  static void RunAll() {
+    for (const auto &[name, ptr] : tests) {
+      bool passed = true;
+      try {
+        ptr();
+      } catch (const std::exception &e) {
+        passed = false;
+      }
+      std::cout << std::format("{}{}{}{}: {}", kBoldText,
+                               (passed ? kGreenText : kRedText),
+                               (passed ? "PASSED" : "FAILED"), kResetText, name)
+                << std::endl;
+    }
+  }
+
+private:
+  static inline std::unordered_map<std::string, void (*)()> tests;
+};
+
+#define TEST(test_name)                                                        \
+  void test_name();                                                            \
+  static struct Register_##test_name {                                         \
+    Register_##test_name() { TestSuite::Register(#test_name, test_name); }     \
+  } register_##test_name;                                                      \
+  void test_name()

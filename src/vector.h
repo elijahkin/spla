@@ -9,24 +9,26 @@ namespace spla {
 // Defines the requirements to be the template type for a `Vector`. In
 // particular, it must support addition, multiplication, and absolute value.
 template <typename T>
-concept Scalar = requires(T a, T b) {
+concept Arithmetic = requires(T a, T b) {
   a += b;
   a *= b;
   abs(a);
 };
 
+typedef size_t Shape;
+
 // Implements a sparse vector of length `shape_` represented internally as a
 // map. If an index `i` between 0 and `shape_` is not present as a key in the
 // map, that entry is implicitly `default_value_`.
-template <Scalar T> class Vector {
+template <Arithmetic T> class Vector {
 public:
-  static Vector<T> fill(size_t shape, T default_value) {
+  static Vector<T> fill(Shape shape, T default_value) {
     return Vector<T>(shape, default_value);
   }
 
-  static Vector<T> zeros(size_t shape) { return fill(shape, 0); }
+  static Vector<T> zeros(Shape shape) { return fill(shape, 0); }
 
-  static Vector<T> ones(size_t shape) { return fill(shape, 1); }
+  static Vector<T> ones(Shape shape) { return fill(shape, 1); }
 
   Vector<T> &operator*=(T rhs) {
     default_value_ *= rhs;
@@ -127,10 +129,10 @@ public:
 
 private:
   std::unordered_map<size_t, T> data_;
-  size_t shape_;
+  Shape shape_;
   T default_value_;
 
-  Vector(size_t shape, T default_value)
+  Vector(Shape shape, T default_value)
       : shape_(shape), default_value_(default_value) {}
 };
 

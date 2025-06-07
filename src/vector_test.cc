@@ -71,11 +71,34 @@ TEST(ShapeExceptions) {
   EXPECT_THROW(v2[3], std::out_of_range);
 }
 
+// TODO(elijahkin) Uncomment once Vector supports assignment and equality
+TEST(AssignmentAndEquality) {
+  auto v = spla::Vector<int>::ones(3);
+  auto one = v;
+  auto two = spla::Vector<int>::fill(3, 2);
+  // EXPECT_EQ(v, one);
+  // EXPECT_NE(v, two);
+
+  v *= 2;
+  // EXPECT_NE(v, one);
+  // EXPECT_EQ(v, two);
+
+  // v -= one;
+  // EXPECT_EQ(v, one);
+  // EXPECT_NE(v, two);
+}
+
+// TODO(elijahkin) Uncomment once Vector supports non-modifying operations
+TEST(NonmodifyingAndUnlikeTypes) {
+  auto one_int = spla::Vector<int>::ones(3);
+  auto one_float = spla::Vector<float>::ones(3);
+  auto two_double = spla::Vector<double>::fill(3, 2);
+
+  // auto two = one_int + one_float;
+  // EXPECT_NEAR(two.norm(2), two_double.norm(2), 1e-6);
+}
+
 int main() {
-  // TODO(elijahkin) Build this up automatically from the TEST macro
-  RunAll({{"VectorBasics", VectorBasics},
-          {"SubscriptSparsity", SubscriptSparsity},
-          {"NonzeroDefaultValues", NonzeroDefaultValues},
-          {"ShapeExceptions", ShapeExceptions}});
+  TestSuite::RunAll();
   return 0;
 }
