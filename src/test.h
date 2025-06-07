@@ -1,35 +1,44 @@
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <unordered_map>
 
-// Defines simple macros for testing in C++, heavily inspired by Google Test.
+// This file is a simple testing framework for C++, taking heavy inspiration
+// from Google Test. We first define several macros for making assertions within
+// tests, and then the `TestSuite` class itself.
 
-// Asserts that two values are exactly equal.
-#define EXPECT_EQ(val1, val2) assert((val1) == (val2))
+#define EXPECT_EQ(val1, val2)                                                  \
+  if (!((val1) == (val2))) {                                                   \
+    throw std::runtime_error("EXPECT_EQ failed");                              \
+  }
 
-// Asserts that two values are not exactly equal.
-#define EXPECT_NE(val1, val2) assert((val1) != (val2))
+#define EXPECT_NE(val1, val2)                                                  \
+  if (!((val1) != (val2))) {                                                   \
+    throw std::runtime_error("EXPECT_NE failed");                              \
+  }
 
-// Asserts that the absolute difference of two floating-point values does not
-// exceed `abs_err`.
 #define EXPECT_NEAR(val1, val2, abs_err)                                       \
-  assert(std::abs((val1) - (val2)) < abs_err)
+  if (std::abs((val1) - (val2)) > abs_err) {                                   \
+    throw std::runtime_error("EXPECT_NEAR failed");                            \
+  }
 
-// Asserts that `stmt` does not throw any exceptions.
 #define EXPECT_NO_THROW(stmt)                                                  \
   try {                                                                        \
     stmt;                                                                      \
   } catch (const std::exception &e) {                                          \
-    assert(false);                                                             \
+    throw std::runtime_error("EXPECT_NO_THROW failed");                        \
   }
 
-// Asserts that `stmt` throws an exception of type `exc_type`.
 #define EXPECT_THROW(stmt, exc_type)                                           \
-  try {                                                                        \
-    stmt;                                                                      \
-    assert(false);                                                             \
-  } catch (const exc_type &e) {                                                \
+  {                                                                            \
+    bool thrown = false;                                                       \
+    try {                                                                      \
+      stmt;                                                                    \
+    } catch (const exc_type &e) {                                              \
+      thrown = true;                                                           \
+    }                                                                          \
+    if (!thrown) {                                                             \
+      throw std::runtime_error("EXPECT_THROW failed");                         \
+    }                                                                          \
   }
 
 // Human readable names for ANSI escape codes
@@ -38,6 +47,9 @@ const char kBoldText[] = "\033[1m";
 const char kRedText[] = "\033[31m";
 const char kGreenText[] = "\033[32m";
 
+// Manages a collection of tests, allowing them to be registered and run. The
+// `RunAll` method executes all registered tests and prints their results to the
+// console, indicating whether each test passed or failed.
 class TestSuite {
 public:
   static void Register(const std::string &name, void (*test_func)()) {
@@ -63,6 +75,7 @@ private:
   static inline std::unordered_map<std::string, void (*)()> tests;
 };
 
+// Registers a test function with the `TestSuite`.
 #define TEST(test_name)                                                        \
   void test_name();                                                            \
   static struct Register_##test_name {                                         \
