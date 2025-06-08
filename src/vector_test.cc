@@ -40,17 +40,21 @@ TEST(SubscriptSparsity) {
 }
 
 TEST(NonzeroDefaultValues) {
-  auto v = spla::Vector<double>::ones(3);
-  EXPECT_NEAR(v[0], 1, 1e-6);
-  EXPECT_NEAR(v.norm(2), sqrt(3), 1e-6);
+  const auto one = spla::Vector<double>::ones(3);
+  const auto two = spla::Vector<double>::full(3, 2);
+  const auto three = spla::Vector<double>::full(3, 3);
 
-  auto w = spla::Vector<double>::fill(3, 2);
+  auto v = one;
+  EXPECT_NEAR(v[0], 1, 1e-6);
+  EXPECT_NEAR(v.norm(2), sqrt(3), 1e-6); // EXPECT_NEAR(v, one, 1e-6);
+
+  auto w = two;
   EXPECT_NEAR(w[0], 2, 1e-6);
-  EXPECT_NEAR(w.norm(2), sqrt(12), 1e-6);
+  EXPECT_NEAR(w.norm(2), sqrt(12), 1e-6); // EXPECT_NEAR(w, two, 1e-6);
 
   v += w;
   EXPECT_NEAR(v[0], 3, 1e-6);
-  EXPECT_NEAR(v.norm(2), sqrt(27), 1e-6);
+  EXPECT_NEAR(v.norm(2), sqrt(27), 1e-6); // EXPECT_NEAR(v, three, 1e-6);
 }
 
 TEST(ShapeExceptions) {
@@ -90,7 +94,7 @@ TEST(NonmodifyingAddition) {
   v[2] = 0;
   EXPECT_EQ(v.sparsity(), 2);
 
-  auto w = spla::Vector<int>::fill(4, 2);
+  auto w = spla::Vector<int>::full(4, 2);
   w[0] = 0;
   w[1] = 0;
   EXPECT_EQ(w.sparsity(), 2);
@@ -106,7 +110,7 @@ TEST(NonmodifyingAddition) {
 TEST(TypeConversion) {
   auto one_int = spla::Vector<int>::ones(3);
   auto one_double = spla::Vector<double>::ones(3);
-  auto two_double = spla::Vector<double>::fill(3, 2);
+  auto two_double = spla::Vector<double>::full(3, 2);
 
   auto v = static_cast<spla::Vector<double>>(one_int);
   EXPECT_EQ(v, one_double);
@@ -116,7 +120,7 @@ TEST(TypeConversion) {
 TEST(AdditionWithScalar) {
   auto v = spla::Vector<int>::zeros(3);
   auto one = spla::Vector<int>::ones(3);
-  auto two = spla::Vector<int>::fill(3, 2);
+  auto two = spla::Vector<int>::full(3, 2);
 
   EXPECT_NE(v, one);
   EXPECT_NE(v, two);
@@ -133,7 +137,7 @@ TEST(AdditionWithScalar) {
 TEST(AssignmentAndEquality) {
   auto v = spla::Vector<int>::ones(3);
   auto one = v;
-  auto two = spla::Vector<int>::fill(3, 2);
+  auto two = spla::Vector<int>::full(3, 2);
   EXPECT_EQ(v, one);
   EXPECT_NE(v, two);
 
@@ -144,6 +148,18 @@ TEST(AssignmentAndEquality) {
   v -= one;
   EXPECT_EQ(v, one);
   EXPECT_NE(v, two);
+}
+
+TEST(AbsoluteValue) {
+  auto v = spla::Vector<int>::zeros(3);
+  v[0] = -3;
+  v[1] = 4;
+  v[2] = -2;
+
+  auto abs_v = abs(v);
+  EXPECT_EQ(abs_v[0], 3);
+  EXPECT_EQ(abs_v[1], 4);
+  EXPECT_EQ(abs_v[2], 2);
 }
 
 int main() {

@@ -1,5 +1,5 @@
-#include <cmath>
-#include <iostream>
+#include "log.h"
+
 #include <vector>
 
 // This file is a simple testing framework for C++, taking heavy inspiration
@@ -17,7 +17,7 @@
   }
 
 #define EXPECT_NEAR(val1, val2, abs_err)                                       \
-  if (std::abs((val1) - (val2)) > abs_err) {                                   \
+  if (abs((val1) - (val2)) > abs_err) {                                        \
     throw std::runtime_error("EXPECT_NEAR failed");                            \
   }
 
@@ -41,11 +41,12 @@
     }                                                                          \
   }
 
-// Human readable names for ANSI escape codes
-const char kResetText[] = "\033[0m";
-const char kBoldText[] = "\033[1m";
-const char kRedText[] = "\033[31m";
-const char kGreenText[] = "\033[32m";
+#define TEST(test_name)                                                        \
+  void test_name();                                                            \
+  static struct Register_##test_name {                                         \
+    Register_##test_name() { TestSuite::Register(#test_name, test_name); }     \
+  } register_##test_name;                                                      \
+  void test_name()
 
 // Manages a collection of tests, allowing them to be registered and run. The
 // `RunAll` method executes all registered tests and prints their results to the
@@ -74,11 +75,3 @@ public:
 private:
   static inline std::vector<std::pair<std::string, void (*)()>> tests;
 };
-
-// Registers a test function with the `TestSuite`.
-#define TEST(test_name)                                                        \
-  void test_name();                                                            \
-  static struct Register_##test_name {                                         \
-    Register_##test_name() { TestSuite::Register(#test_name, test_name); }     \
-  } register_##test_name;                                                      \
-  void test_name()

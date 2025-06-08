@@ -2,7 +2,7 @@
 This is a simple library for sparse linear algebra computations aimed toward numerical solutions of partial differential equations. Currently, only the `spla::Vector` class is implemented; we hope to eventually generalize to handle tensors of arbitrary order.
 
 ### Work in Progress
-* Add more operations: `abs`, `operator<=>`. Then update `EXPECT_NEAR` etc. to be able to accept vectors.
+* Add `operator<=>` and update `EXPECT_NEAR` etc. to be able to accept vectors.
 * Address `TODO` comments and thoroughly document each class and function.
 * Add parallelism with OpenMP. We already are compiling with `-fopenmp`.
 * Enforce good C++ practices: `#define` guards, long member functions outside class definitions.

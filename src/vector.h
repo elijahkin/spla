@@ -5,12 +5,14 @@
 namespace spla {
 
 // Defines the requirements to be the template type for a `Vector`. In
-// particular, it must support addition, multiplication, and absolute value.
+// particular, it must support typical arithmetic operations such as addition,
+// multiplication, and absolute value.
 template <typename T>
 concept Arithmetic = requires(T a, T b) {
-  a += b;
-  a *= b;
   abs(a);
+  a += b;
+  a -= b;
+  a *= b;
 };
 
 typedef size_t Shape;
@@ -20,18 +22,19 @@ typedef size_t Shape;
 // map, that entry is implicitly `default_value_`.
 template <Arithmetic T> class Vector {
 public:
-  static Vector<T> fill(Shape shape, T default_value) {
+  static Vector<T> full(Shape shape, T default_value) {
     return Vector<T>(shape, default_value);
   }
 
-  static Vector<T> zeros(Shape shape) { return fill(shape, 0); }
+  static Vector<T> zeros(Shape shape) { return full(shape, 0); }
 
-  static Vector<T> ones(Shape shape) { return fill(shape, 1); }
+  static Vector<T> ones(Shape shape) { return full(shape, 1); }
 
   // This is needed in order for the conversion constructor to access the
   // private fields of Vector<U>.
   template <Arithmetic U> friend class Vector;
 
+  // TODO(elijahkin) This can likely be done with `apply_unop`
   template <Arithmetic U>
   explicit Vector(const Vector<U> &other)
       : shape_(other.shape_),
@@ -44,12 +47,11 @@ public:
   // Implements the behavior for `vec1 == vec2`, which are considered equal if
   // they have the same shape, default value, and data. The behavior for `vec1
   // != vec2` is also inferred from this.
+  // TODO(elijahkin) This should probably be done with `apply_binop`.
   friend bool operator==(const Vector &lhs, const Vector &rhs) {
     return lhs.shape_ == rhs.shape_ &&
            lhs.default_value_ == rhs.default_value_ && lhs.data_ == rhs.data_;
   }
-
-  // TODO(elijahkin) Should we implement a spaceship operator?
 
   friend std::ostream &operator<<(std::ostream &os, const Vector &vec) {
     return os << std::format("{}", vec.data_);
@@ -104,24 +106,35 @@ public:
     return pow(sum, 1.0 / ord);
   }
 
+  friend Vector<T> abs(const Vector<T> &vec) {
+    return apply_unop(vec, [](T &a) { a = abs(a); });
+  }
+
   Vector<T> &operator+=(const Vector &rhs) {
-    return apply_binop(rhs, [](T &a, const T &b) { a += b; }, "Add");
+    return apply_binop(rhs, [](T &a, const T &b) { a += b; }, "add");
   }
 
   Vector<T> &operator-=(const Vector &rhs) {
-    return apply_binop(rhs, [](T &a, const T &b) { a -= b; }, "Subtract");
+    return apply_binop(rhs, [](T &a, const T &b) { a -= b; }, "subtract");
   }
 
   Vector<T> &operator*=(const Vector &rhs) {
-    return apply_binop(rhs, [](T &a, const T &b) { a *= b; }, "Multiply");
+    return apply_binop(rhs, [](T &a, const T &b) { a *= b; }, "multiply");
   }
+
+  // TODO(elijahkin) Should we implement a spaceship operator?
+  // friend Vector<bool> operator<=>
 
   friend Vector operator+(Vector lhs, const Vector &rhs) { return lhs += rhs; }
 
-  // TODO(elijahkin) We can eliminate these if shape is a template parameter.
-  Vector<T> &operator+=(T rhs) { return *this += fill(shape_, rhs); }
+  friend Vector operator-(Vector lhs, const Vector &rhs) { return lhs -= rhs; }
 
-  Vector<T> &operator*=(T rhs) { return *this *= fill(shape_, rhs); }
+  friend Vector operator*(Vector lhs, const Vector &rhs) { return lhs *= rhs; }
+
+  // TODO(elijahkin) We can eliminate these if shape is a template parameter.
+  Vector<T> &operator+=(T rhs) { return *this += full(shape_, rhs); }
+
+  Vector<T> &operator*=(T rhs) { return *this *= full(shape_, rhs); }
 
   friend T dot(const Vector &lhs, const Vector &rhs) {
     if (lhs.shape_ != rhs.shape_) {
@@ -145,6 +158,16 @@ private:
 
   Vector(Shape shape, T default_value)
       : shape_(shape), default_value_(default_value) {}
+
+  template <typename Operation>
+  friend Vector<T> apply_unop(const Vector &vec, Operation op) {
+    Vector<T> result = vec;
+    for (auto &[key, val] : result.data_) {
+      op(val);
+    }
+    op(result.default_value_);
+    return result;
+  }
 
   // TODO(elijahkin) Should we add a concept for `Operation`?
   template <typename Operation>
