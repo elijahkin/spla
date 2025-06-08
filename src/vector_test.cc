@@ -141,7 +141,7 @@ TEST(AssignmentAndEquality) {
   EXPECT_NE(v, one);
   EXPECT_EQ(v, two);
 
-  // v -= one;
+  v -= one;
   EXPECT_EQ(v, one);
   EXPECT_NE(v, two);
 }

@@ -1,7 +1,5 @@
 #include <cmath>
-#include <cstddef>
 #include <format>
-#include <ostream>
 #include <unordered_map>
 
 namespace spla {
@@ -41,67 +39,6 @@ public:
     for (const auto &[key, val] : other.data_) {
       data_[key] = static_cast<T>(val);
     }
-  }
-
-  Vector<T> &operator+=(const Vector &rhs) {
-    if (shape_ != rhs.shape_) {
-      throw std::invalid_argument(
-          "Addition expects operands of the same shape.");
-    }
-    for (auto &[key, lhs_val] : data_) {
-      if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
-        lhs_val += rhs.default_value_;
-      }
-    }
-    for (const auto &[key, rhs_val] : rhs.data_) {
-      if (auto it = data_.find(key); it == data_.end()) {
-        data_[key] = default_value_;
-      }
-      data_[key] += rhs_val;
-    }
-    default_value_ += rhs.default_value_;
-    return *this;
-  }
-
-  Vector<T> &operator+=(T rhs) { return *this += fill(shape_, rhs); }
-
-  friend Vector operator+(Vector lhs, const Vector &rhs) { return lhs += rhs; }
-
-  Vector<T> &operator*=(const Vector &rhs) {
-    if (shape_ != rhs.shape_) {
-      throw std::invalid_argument(
-          "Multiplication expects operands of the same shape.");
-    }
-    for (auto &[key, lhs_val] : data_) {
-      if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
-        lhs_val *= rhs.default_value_;
-      }
-    }
-    for (const auto &[key, rhs_val] : rhs.data_) {
-      if (auto it = data_.find(key); it == data_.end()) {
-        data_[key] = default_value_;
-      }
-      data_[key] *= rhs_val;
-    }
-    default_value_ *= rhs.default_value_;
-    return *this;
-  }
-
-  Vector<T> &operator*=(T rhs) { return *this *= fill(shape_, rhs); }
-
-  friend T dot(const Vector &lhs, const Vector &rhs) {
-    if (lhs.shape_ != rhs.shape_) {
-      throw std::invalid_argument("Dot expects operands of the same shape");
-    }
-    // TODO(elijahkin) Canonicalize to always iterate over the smaller map
-    T dot = T{};
-    for (const auto &[key, lhs_val] : lhs.data_) {
-      if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
-        const T rhs_val = it->second;
-        dot += lhs_val * rhs_val;
-      }
-    }
-    return dot;
   }
 
   // Implements the behavior for `vec1 == vec2`, which are considered equal if
@@ -167,6 +104,40 @@ public:
     return pow(sum, 1.0 / ord);
   }
 
+  Vector<T> &operator+=(const Vector &rhs) {
+    return apply_binop(rhs, [](T &a, const T &b) { a += b; }, "Add");
+  }
+
+  Vector<T> &operator-=(const Vector &rhs) {
+    return apply_binop(rhs, [](T &a, const T &b) { a -= b; }, "Subtract");
+  }
+
+  Vector<T> &operator*=(const Vector &rhs) {
+    return apply_binop(rhs, [](T &a, const T &b) { a *= b; }, "Multiply");
+  }
+
+  friend Vector operator+(Vector lhs, const Vector &rhs) { return lhs += rhs; }
+
+  // TODO(elijahkin) We can eliminate these if shape is a template parameter.
+  Vector<T> &operator+=(T rhs) { return *this += fill(shape_, rhs); }
+
+  Vector<T> &operator*=(T rhs) { return *this *= fill(shape_, rhs); }
+
+  friend T dot(const Vector &lhs, const Vector &rhs) {
+    if (lhs.shape_ != rhs.shape_) {
+      throw std::invalid_argument("Dot expects operands of the same shape");
+    }
+    // TODO(elijahkin) Canonicalize to always iterate over the smaller map
+    T dot = T{};
+    for (const auto &[key, lhs_val] : lhs.data_) {
+      if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
+        const T rhs_val = it->second;
+        dot += lhs_val * rhs_val;
+      }
+    }
+    return dot;
+  }
+
 private:
   std::unordered_map<size_t, T> data_;
   Shape shape_;
@@ -174,6 +145,29 @@ private:
 
   Vector(Shape shape, T default_value)
       : shape_(shape), default_value_(default_value) {}
+
+  // TODO(elijahkin) Should we add a concept for `Operation`?
+  template <typename Operation>
+  Vector<T> &apply_binop(const Vector &rhs, Operation op,
+                         const std::string &op_name) {
+    if (shape_ != rhs.shape_) {
+      throw std::invalid_argument(op_name +
+                                  " expects operands of the same shape.");
+    }
+    for (auto &[key, lhs_val] : data_) {
+      if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
+        op(lhs_val, rhs.default_value_);
+      }
+    }
+    for (const auto &[key, rhs_val] : rhs.data_) {
+      if (auto it = data_.find(key); it == data_.end()) {
+        data_[key] = default_value_;
+      }
+      op(data_[key], rhs_val);
+    }
+    op(default_value_, rhs.default_value_);
+    return *this;
+  }
 };
 
 } // namespace spla
