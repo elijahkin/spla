@@ -24,7 +24,7 @@ TEST(VectorBasics) {
 
   EXPECT_NEAR(v.norm(1), 25, 1e-6);
   EXPECT_NEAR(v.norm(2), sqrt(297), 1e-6);
-  EXPECT_EQ(inner(v, w), 21);
+  EXPECT_EQ(dot(v, w), 21);
 }
 
 TEST(SubscriptSparsity) {
@@ -61,8 +61,8 @@ TEST(ShapeExceptions) {
   EXPECT_THROW(v1 += v2, std::invalid_argument);
   EXPECT_NO_THROW(v1 += v3);
 
-  EXPECT_THROW(inner(v2, v1), std::invalid_argument);
-  EXPECT_NO_THROW(inner(v3, v1));
+  EXPECT_THROW(dot(v2, v1), std::invalid_argument);
+  EXPECT_NO_THROW(dot(v3, v1));
 
   EXPECT_NO_THROW(v1[0]);
   EXPECT_THROW(v1[-1], std::out_of_range);
@@ -85,12 +85,22 @@ TEST(Equality) {
 }
 
 TEST(NonmodifyingAddition) {
-  auto one = spla::Vector<int>::ones(3);
-  auto two = spla::Vector<int>::fill(3, 2);
-  auto three = spla::Vector<int>::fill(3, 3);
+  auto v = spla::Vector<int>::ones(4);
+  v[0] = 0;
+  v[2] = 0;
+  EXPECT_EQ(v.sparsity(), 2);
 
-  auto v = one + two;
-  EXPECT_EQ(v, three);
+  auto w = spla::Vector<int>::fill(4, 2);
+  w[0] = 0;
+  w[1] = 0;
+  EXPECT_EQ(w.sparsity(), 2);
+
+  auto u = v + w;
+  EXPECT_EQ(u[0], 0);
+  EXPECT_EQ(u[1], 1);
+  EXPECT_EQ(u[2], 2);
+  EXPECT_EQ(u[3], 3);
+  EXPECT_EQ(u.sparsity(), 3);
 }
 
 TEST(TypeConversion) {

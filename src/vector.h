@@ -43,50 +43,55 @@ public:
     }
   }
 
-  Vector<T> &operator*=(T rhs) {
-    default_value_ *= rhs;
-    if (rhs == T{}) {
-      data_.clear();
-    } else {
-      for (auto &[_, val] : data_) {
-        val *= rhs;
-      }
-    }
-    return *this;
-  }
-
   Vector<T> &operator+=(const Vector &rhs) {
     if (shape_ != rhs.shape_) {
       throw std::invalid_argument(
           "Addition expects operands of the same shape.");
     }
-    default_value_ += rhs.default_value_;
-    for (const auto &[key, rhs_val] : rhs.data_) {
-      auto &val = data_[key];
-      val += rhs_val;
-      if (val == default_value_) {
-        data_.erase(key);
+    for (auto &[key, lhs_val] : data_) {
+      if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
+        lhs_val += rhs.default_value_;
       }
     }
+    for (const auto &[key, rhs_val] : rhs.data_) {
+      if (auto it = data_.find(key); it == data_.end()) {
+        data_[key] = default_value_;
+      }
+      data_[key] += rhs_val;
+    }
+    default_value_ += rhs.default_value_;
     return *this;
   }
 
   Vector<T> &operator+=(T rhs) { return *this += fill(shape_, rhs); }
 
-  // Implements the behavior for `vec1 == vec2`, which are considered equal if
-  // they have the same shape, default value, and data. The behavior for `vec1
-  // != vec2` is also inferred from this.
-  friend bool operator==(const Vector &lhs, const Vector &rhs) {
-    return lhs.shape_ == rhs.shape_ &&
-           lhs.default_value_ == rhs.default_value_ && lhs.data_ == rhs.data_;
-  }
-
   friend Vector operator+(Vector lhs, const Vector &rhs) { return lhs += rhs; }
 
-  friend T inner(const Vector &lhs, const Vector &rhs) {
-    if (lhs.shape_ != rhs.shape_) {
+  Vector<T> &operator*=(const Vector &rhs) {
+    if (shape_ != rhs.shape_) {
       throw std::invalid_argument(
-          "Inner product expects operands of the same shape");
+          "Multiplication expects operands of the same shape.");
+    }
+    for (auto &[key, lhs_val] : data_) {
+      if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
+        lhs_val *= rhs.default_value_;
+      }
+    }
+    for (const auto &[key, rhs_val] : rhs.data_) {
+      if (auto it = data_.find(key); it == data_.end()) {
+        data_[key] = default_value_;
+      }
+      data_[key] *= rhs_val;
+    }
+    default_value_ *= rhs.default_value_;
+    return *this;
+  }
+
+  Vector<T> &operator*=(T rhs) { return *this *= fill(shape_, rhs); }
+
+  friend T dot(const Vector &lhs, const Vector &rhs) {
+    if (lhs.shape_ != rhs.shape_) {
+      throw std::invalid_argument("Dot expects operands of the same shape");
     }
     // TODO(elijahkin) Canonicalize to always iterate over the smaller map
     T dot = T{};
@@ -97,6 +102,14 @@ public:
       }
     }
     return dot;
+  }
+
+  // Implements the behavior for `vec1 == vec2`, which are considered equal if
+  // they have the same shape, default value, and data. The behavior for `vec1
+  // != vec2` is also inferred from this.
+  friend bool operator==(const Vector &lhs, const Vector &rhs) {
+    return lhs.shape_ == rhs.shape_ &&
+           lhs.default_value_ == rhs.default_value_ && lhs.data_ == rhs.data_;
   }
 
   // TODO(elijahkin) Should we implement a spaceship operator?
