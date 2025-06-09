@@ -3,7 +3,7 @@
 
 TEST(VectorBasics) {
   auto v = spla::Vector<int>::zeros(10);
-  EXPECT_NEAR(v.norm(2), 0, 1e-6);
+  EXPECT_NEAR(norm(v, 2), 0, 1e-6);
 
   v[1] = -7;
   v[3] = 4;
@@ -22,8 +22,8 @@ TEST(VectorBasics) {
   EXPECT_EQ(v[3], 10);
   EXPECT_EQ(v[5], 1);
 
-  EXPECT_NEAR(v.norm(1), 25, 1e-6);
-  EXPECT_NEAR(v.norm(2), sqrt(297), 1e-6);
+  EXPECT_NEAR(norm(v, 1), 25, 1e-6);
+  EXPECT_NEAR(norm(v, 2), sqrt(297), 1e-6);
   EXPECT_EQ(dot(v, w), 21);
 }
 
@@ -46,15 +46,15 @@ TEST(NonzeroDefaultValues) {
 
   auto v = one;
   EXPECT_NEAR(v[0], 1, 1e-6);
-  EXPECT_NEAR(v.norm(2), sqrt(3), 1e-6); // EXPECT_NEAR(v, one, 1e-6);
+  EXPECT_NEAR(norm(v, 2), sqrt(3), 1e-6); // EXPECT_NEAR(v, one, 1e-6);
 
   auto w = two;
   EXPECT_NEAR(w[0], 2, 1e-6);
-  EXPECT_NEAR(w.norm(2), sqrt(12), 1e-6); // EXPECT_NEAR(w, two, 1e-6);
+  EXPECT_NEAR(norm(w, 2), sqrt(12), 1e-6); // EXPECT_NEAR(w, two, 1e-6);
 
-  v += w;
+  v = v + w;
   EXPECT_NEAR(v[0], 3, 1e-6);
-  EXPECT_NEAR(v.norm(2), sqrt(27), 1e-6); // EXPECT_NEAR(v, three, 1e-6);
+  EXPECT_NEAR(norm(v, 2), sqrt(27), 1e-6); // EXPECT_NEAR(v, three, 1e-6);
 }
 
 TEST(ShapeExceptions) {
@@ -160,6 +160,10 @@ TEST(AbsoluteValue) {
   EXPECT_EQ(abs_v[0], 3);
   EXPECT_EQ(abs_v[1], 4);
   EXPECT_EQ(abs_v[2], 2);
+
+  EXPECT_EQ(v[0], -3);
+  EXPECT_EQ(v[1], 4);
+  EXPECT_EQ(v[2], -2);
 }
 
 int main() {
