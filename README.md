@@ -1,5 +1,5 @@
 ### Introduction
-This is a simple library for sparse linear algebra computations aimed toward numerical solutions of partial differential equations. The fundamental object of computation is the `spla::Tensor`. For example usage, see `tensor_test.cc`.
+This is a simple library for sparse linear algebra computations aimed toward numerical solutions of partial differential equations. The fundamental object of computation is the `spla::Tensor`. Currently, only computations for order-1 tensors, i.e. vectors, are implemented. However, we are actively working on generalizing this to tensors of arbitrary order. For example usage, see `tensor_test.cc`.
 
 ### Work in Progress
 * Update `EXPECT_NEAR` etc. to be able to accept tensors.

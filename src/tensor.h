@@ -17,7 +17,7 @@ concept Arithmetic = requires(T a, T b) {
   pow(a, b);
 };
 
-// Implements a sparse vector represented internally by `std::unordered_map`. If
+// Implements a sparse tensor represented internally by `std::unordered_map`. If
 // an index `i` between 0 and `Shape` is not present as a key in the map, that
 // entry is implicitly `default_value_`.
 template <Arithmetic T, size_t Shape> class Tensor {
@@ -57,7 +57,7 @@ public:
   // Subscript Operator //
   ////////////////////////
 
-  // Handles reading and writing of vector elements. This is the object returned
+  // Handles reading and writing of tensor entries. This is the object returned
   // by `operator[]`, which is necessary to ensure that default values are not
   // accidently written to `data_`.
   class SubscriptProxy {
@@ -100,15 +100,15 @@ public:
   // Modifying Operators //
   /////////////////////////
 
-  Tensor<T, Shape> &operator+=(const Tensor<T, Shape> &rhs) {
+  auto &operator+=(const Tensor<T, Shape> &rhs) {
     return this->apply_binary_inplace(rhs, [](T &a, const T &b) { a += b; });
   }
 
-  Tensor<T, Shape> &operator-=(const Tensor<T, Shape> &rhs) {
+  auto &operator-=(const Tensor<T, Shape> &rhs) {
     return this->apply_binary_inplace(rhs, [](T &a, const T &b) { a -= b; });
   }
 
-  Tensor<T, Shape> &operator*=(const Tensor<T, Shape> &rhs) {
+  auto &operator*=(const Tensor<T, Shape> &rhs) {
     return this->apply_binary_inplace(rhs, [](T &a, const T &b) { a *= b; });
   }
 
@@ -146,6 +146,8 @@ private:
 
   // TODO(elijahkin) Should `op` be `std::function` instead? Moreover, consider
   // whether supplying addition as a default operation makes sense.
+  // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
+  // instead of `T`; this will make generalization much easier.
   friend T reduce(const Tensor<T, Shape> &vec, T (*op)(T, T)) {
     T result = vec.default_value_ * (Shape - vec.data_.size());
     for (const auto &[_, val] : vec.data_) {
@@ -223,55 +225,50 @@ private:
 ////////////////////////////
 
 template <Arithmetic T, size_t Shape>
-Tensor<T, Shape> operator+(const Tensor<T, Shape> &lhs,
-                           const Tensor<T, Shape> &rhs) {
+auto operator+(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return apply_binary(lhs, rhs, [](T a, T b) { return a + b; });
 }
 
 template <Arithmetic T, size_t Shape>
-Tensor<T, Shape> operator-(const Tensor<T, Shape> &lhs,
-                           const Tensor<T, Shape> &rhs) {
+auto operator-(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return apply_binary(lhs, rhs, [](T a, T b) { return a - b; });
 }
 
 template <Arithmetic T, size_t Shape>
-Tensor<T, Shape> operator*(const Tensor<T, Shape> &lhs,
-                           const Tensor<T, Shape> &rhs) {
+auto operator*(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return apply_binary(lhs, rhs, [](T a, T b) { return a * b; });
 }
 
 template <Arithmetic T, size_t Shape>
-Tensor<bool, Shape> operator==(const Tensor<T, Shape> &lhs,
-                               const Tensor<T, Shape> &rhs) {
+auto operator==(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return apply_binary(lhs, rhs, [](T a, T b) { return a == b; });
 }
 
 template <Arithmetic T, size_t Shape>
-Tensor<bool, Shape> operator<(const Tensor<T, Shape> &lhs,
-                              const Tensor<T, Shape> &rhs) {
+auto operator<(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return apply_binary(lhs, rhs, [](T a, T b) { return a < b; });
 }
 
 // TODO(elijahkin) We can easily add the other comparators if needed.
 
 template <Arithmetic T, size_t Shape>
-T dot(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+auto dot(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return reduce(lhs * rhs, [](T a, T b) { return a + b; });
 }
 
 template <Arithmetic T, size_t Shape>
-double norm(const Tensor<T, Shape> &vec, int ord) {
+auto norm(const Tensor<T, Shape> &vec, int ord) {
   return pow(reduce(pow(abs(vec), ord), [](T a, T b) { return a + b; }),
              1.0 / ord);
 }
 
 // TODO(elijahkin) Eventually we should update `reduce` to ensure these exit
 // early
-template <size_t Shape> bool any(const Tensor<bool, Shape> &vec) {
+template <size_t Shape> auto any(const Tensor<bool, Shape> &vec) {
   return reduce(vec, [](bool a, bool b) { return a || b; });
 }
 
-template <size_t Shape> bool all(const Tensor<bool, Shape> &vec) {
+template <size_t Shape> auto all(const Tensor<bool, Shape> &vec) {
   return reduce(vec, [](bool a, bool b) { return a && b; });
 }
 
