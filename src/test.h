@@ -7,48 +7,39 @@
 // tests, and then the `TestSuite` class itself.
 
 #define EXPECT_TRUE(condition)                                                 \
-  if (!condition) {                                                            \
+  if (!(condition)) {                                                          \
     throw std::runtime_error("EXPECT_TRUE failed");                            \
   }
 
-#define EXPECT_FALSE(condition)                                                \
-  if (condition) {                                                             \
-    throw std::runtime_error("EXPECT_FALSE failed");                           \
-  }
+#define EXPECT_FALSE(condition) EXPECT_TRUE(!condition)
 
-#define EXPECT_EQ(val1, val2)                                                  \
-  if (!((val1) == (val2))) {                                                   \
-    throw std::runtime_error("EXPECT_EQ failed");                              \
-  }
+#define EXPECT_EQ(val1, val2) EXPECT_TRUE((val1) == (val2))
 
-#define EXPECT_NE(val1, val2)                                                  \
-  if (!((val1) != (val2))) {                                                   \
-    throw std::runtime_error("EXPECT_NE failed");                              \
-  }
+#define EXPECT_NE(val1, val2) EXPECT_FALSE((val1) == (val2))
 
 #define EXPECT_NEAR(val1, val2, abs_err)                                       \
-  if (abs((val1) - (val2)) > abs_err) {                                        \
-    throw std::runtime_error("EXPECT_NEAR failed");                            \
-  }
-
-#define EXPECT_NO_THROW(stmt)                                                  \
-  try {                                                                        \
-    stmt;                                                                      \
-  } catch (const std::exception &e) {                                          \
-    throw std::runtime_error("EXPECT_NO_THROW failed");                        \
-  }
+  EXPECT_TRUE(abs((val1) - (val2)) < abs_err)
 
 #define EXPECT_THROW(stmt, exc_type)                                           \
   {                                                                            \
-    bool thrown = false;                                                       \
+    bool caught = false;                                                       \
     try {                                                                      \
       stmt;                                                                    \
     } catch (const exc_type &e) {                                              \
-      thrown = true;                                                           \
+      caught = true;                                                           \
     }                                                                          \
-    if (!thrown) {                                                             \
-      throw std::runtime_error("EXPECT_THROW failed");                         \
+    EXPECT_TRUE(caught)                                                        \
+  }
+
+#define EXPECT_NO_THROW(stmt)                                                  \
+  {                                                                            \
+    bool caught = false;                                                       \
+    try {                                                                      \
+      stmt;                                                                    \
+    } catch (const std::exception &e) {                                        \
+      caught = true;                                                           \
     }                                                                          \
+    EXPECT_FALSE(caught);                                                      \
   }
 
 #define TEST(test_name)                                                        \
