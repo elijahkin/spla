@@ -82,12 +82,12 @@ TEST(Equality) {
   auto v2 = spla::Vector<int>::zeros(5);
   auto v3 = spla::Vector<int>::ones(5);
 
-  EXPECT_EQ(v1, v2);
-  EXPECT_NE(v1, v3);
-  EXPECT_NE(v2, v3);
+  EXPECT_TRUE(spla::all(v1 == v2));
+  EXPECT_FALSE(spla::all(v1 == v3));
+  EXPECT_FALSE(spla::all(v2 == v3));
 
   v2[0] = 1;
-  EXPECT_NE(v1, v2);
+  EXPECT_FALSE(spla::all(v1 == v2));
 }
 
 TEST(NonmodifyingAddition) {
@@ -115,8 +115,8 @@ TEST(TypeConversion) {
   auto two_double = spla::Vector<double>::full(3, 2);
 
   auto v = static_cast<spla::Vector<double>>(one_int);
-  EXPECT_EQ(v, one_double);
-  EXPECT_NE(v, two_double);
+  EXPECT_TRUE(spla::all(v == one_double));
+  EXPECT_FALSE(spla::all(v == two_double));
 }
 
 TEST(AdditionWithScalar) {
@@ -124,32 +124,32 @@ TEST(AdditionWithScalar) {
   auto one = spla::Vector<int>::ones(3);
   auto two = spla::Vector<int>::full(3, 2);
 
-  EXPECT_NE(v, one);
-  EXPECT_NE(v, two);
+  EXPECT_FALSE(spla::all(v == one));
+  EXPECT_FALSE(spla::all(v == two));
 
   v += 1;
-  EXPECT_EQ(v, one);
-  EXPECT_NE(v, two);
+  EXPECT_TRUE(spla::all(v == one));
+  EXPECT_FALSE(spla::all(v == two));
 
   v += 1;
-  EXPECT_NE(v, one);
-  EXPECT_EQ(v, two);
+  EXPECT_FALSE(spla::all(v == one));
+  EXPECT_TRUE(spla::all(v == two));
 }
 
 TEST(AssignmentAndEquality) {
   auto v = spla::Vector<int>::ones(3);
   auto one = v;
   auto two = spla::Vector<int>::full(3, 2);
-  EXPECT_EQ(v, one);
-  EXPECT_NE(v, two);
+  EXPECT_TRUE(spla::all(v == one));
+  EXPECT_FALSE(spla::all(v == two));
 
   v *= 2;
-  EXPECT_NE(v, one);
-  EXPECT_EQ(v, two);
+  EXPECT_FALSE(spla::all(v == one));
+  EXPECT_TRUE(spla::all(v == two));
 
   v -= one;
-  EXPECT_EQ(v, one);
-  EXPECT_NE(v, two);
+  EXPECT_TRUE(spla::all(v == one));
+  EXPECT_FALSE(spla::all(v == two));
 }
 
 TEST(AbsoluteValue) {
@@ -202,7 +202,7 @@ TEST(Reduce) {
   auto v = spla::Vector<int>::ones(5);
   v[2] = 7;
   v[3] = -1;
-  EXPECT_EQ(reduce(v), 9);
+  EXPECT_EQ(reduce(v, [](int a, int b) { return a + b; }), 9);
 }
 
 TEST(InnerProduct) {

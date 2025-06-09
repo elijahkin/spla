@@ -38,7 +38,7 @@ public:
 
   // TODO(elijahkin) This can likely be done with `apply_unary`
   template <Arithmetic U>
-  explicit Vector(const Vector<U> &other)
+  Vector(const Vector<U> &other)
       : shape_(other.shape_),
         default_value_(static_cast<T>(other.default_value_)) {
     for (const auto &[key, val] : other.data_) {
@@ -110,73 +110,33 @@ public:
         rhs, [](T &a, const T &b) { a *= b; }, "*=");
   }
 
+  // TODO(elijahkin) We can eliminate these if shape is a template parameter.
+  Vector<T> &operator+=(T rhs) { return *this += full(shape_, rhs); }
+
+  Vector<T> &operator*=(T rhs) { return *this *= full(shape_, rhs); }
+
   ////////////////////////////
   // Nonmodifying Operators //
   ////////////////////////////
 
   friend Vector<T> abs(const Vector<T> &vec) {
-    return apply_unary(vec, [](T &a) { a = abs(a); });
+    return apply_unary(vec, [](T a) { return abs(a); });
   }
 
-  friend Vector<T> exp(const Vector<T> &vec) {
-    return apply_unary(vec, [](T &a) { a = exp(a); });
-  }
-
-  friend Vector<T> operator+(const Vector<T> &lhs, const Vector<T> &rhs) {
-    return apply_binary(lhs, rhs, [](T &a, const T &b) { a = a + b; }, "+");
-  }
-
-  friend Vector<T> operator-(const Vector<T> &lhs, const Vector<T> &rhs) {
-    return apply_binary(lhs, rhs, [](T &a, const T &b) { a = a - b; }, "-");
-  }
-
-  friend Vector<T> operator*(const Vector<T> &lhs, const Vector<T> &rhs) {
-    return apply_binary(lhs, rhs, [](T &a, const T &b) { a = a * b; }, "*");
+  friend auto exp(const Vector<T> &vec) {
+    return apply_unary(vec, [](T a) { return exp(a); });
   }
 
   friend Vector<T> pow(const Vector<T> &lhs, const Vector<T> &rhs) {
-    return apply_binary(
-        lhs, rhs, [](T &a, const T &b) { a = pow(a, b); }, "pow");
+    return apply_binary(lhs, rhs, [](T a, T b) { return pow(a, b); }, "pow");
   }
 
-  // Implements the behavior for `vec1 == vec2`, which are considered equal if
-  // they have the same shape, default value, and data. The behavior for `vec1
-  // != vec2` is also inferred from this.
-  // TODO(elijahkin) This should probably be done with `apply_binary`. But first
-  // we need to implement `any` and `all`.
-  friend bool operator==(const Vector<T> &lhs, const Vector<T> &rhs) {
-    return lhs.shape_ == rhs.shape_ &&
-           lhs.default_value_ == rhs.default_value_ && lhs.data_ == rhs.data_;
-  }
-
-  // TODO(elijahkin) Should we implement a spaceship operator?
-  // friend Vector<bool> operator<=>
-
-  // TODO(elijahkin) Generalize `reduce` as much as possible.
-  // friend T reduce(const Vector<T> &vec, std::function<T(T, T)> op, T
-  // initial_value) {
-  friend T reduce(const Vector<T> &vec) {
-    T result = vec.default_value_ * (vec.shape_ - vec.data_.size());
-    for (const auto &[_, val] : vec.data_) {
-      result += val;
-    }
-    return result;
-  }
-
-  friend T dot(const Vector<T> &lhs, const Vector<T> &rhs) {
-    return reduce(lhs * rhs);
-  }
-
+  // TODO(elijahkin) Once shape is a template parameter, this can be made free
   friend double norm(const Vector<T> &vec, int ord) {
     auto exp = full(vec.shape_, ord);
-    auto sum = reduce(pow(abs(vec), exp));
+    auto sum = reduce(pow(abs(vec), exp), [](T a, T b) { return a + b; });
     return pow(sum, 1.0 / ord);
   }
-
-  // TODO(elijahkin) We can eliminate these if shape is a template parameter.
-  Vector<T> &operator+=(T rhs) { return *this += full(shape_, rhs); }
-
-  Vector<T> &operator*=(T rhs) { return *this *= full(shape_, rhs); }
 
 private:
   std::unordered_map<size_t, T> data_;
@@ -186,18 +146,23 @@ private:
   Vector(Shape shape, T default_value)
       : shape_(shape), default_value_(default_value) {}
 
-  // TODO(elijahkin) Should we add a concept for `Operation`?
-
-  template <typename Operation> Vector<T> &apply_unary_inplace(Operation op) {
-    for (auto &[key, val] : data_) {
-      op(val);
+  // TODO(elijahkin) Should `op` be `std::function` instead? Moreover, consider
+  // whether supplying addition as a default operation makes sense.
+  friend T reduce(const Vector<T> &vec, T (*op)(T, T)) {
+    T result = vec.default_value_ * (vec.shape_ - vec.data_.size());
+    for (const auto &[_, val] : vec.data_) {
+      result = op(result, val);
     }
-    op(default_value_);
-    return *this;
+    return result;
   }
 
-  template <typename Operation>
-  Vector<T> &apply_binary_inplace(const Vector<T> &rhs, Operation op,
+  ////////////////////////////
+  // Elementwise Operations //
+  ////////////////////////////
+
+  // TODO(elijahkin) Try to somehow marry this function with those below.
+  template <typename BinaryOp>
+  Vector<T> &apply_binary_inplace(const Vector<T> &rhs, BinaryOp op,
                                   const std::string &op_name) {
     if (shape_ != rhs.shape_) {
       throw std::invalid_argument(op_name +
@@ -221,18 +186,91 @@ private:
   // TODO(elijahkin) If we introduce an `Operation` class and swap around the
   // argument order, we can merge these functions into a single variadic
   // `apply_elementwise` function.
-  template <typename Operation>
-  friend Vector<T> apply_unary(const Vector<T> &vec, Operation op) {
-    Vector<T> result = vec;
-    return result.apply_unary_inplace(op);
+  template <typename UnaryOp>
+  friend auto apply_unary(const Vector<T> &vec, UnaryOp op)
+      -> Vector<decltype(op(std::declval<T>()))> {
+    using U = decltype(op(std::declval<T>()));
+    Vector<U> result = zeros(vec.shape_);
+    for (const auto &[key, val] : vec.data_) {
+      result.data_[key] = op(val);
+    }
+    result.default_value_ = op(vec.default_value_);
+    return result;
   }
 
-  template <typename Operation>
-  friend Vector<T> apply_binary(const Vector<T> &lhs, const Vector<T> &rhs,
-                                Operation op, const std::string &op_name) {
-    Vector<T> result = lhs;
-    return result.apply_binary_inplace(rhs, op, op_name);
+  template <typename BinaryOp>
+  friend auto apply_binary(const Vector<T> &lhs, const Vector<T> &rhs,
+                           BinaryOp op, const std::string &op_name)
+      -> Vector<decltype(op(std::declval<T>(), std::declval<T>()))> {
+    if (lhs.shape_ != rhs.shape_) {
+      throw std::invalid_argument(op_name +
+                                  " expects operands of the same shape.");
+    }
+    using U = decltype(op(std::declval<T>(), std::declval<T>()));
+    Vector<U> result = zeros(lhs.shape_);
+    for (const auto &[key, lhs_val] : lhs.data_) {
+      if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
+        // The key is in both lhs and rhs
+        result.data_[key] = op(lhs_val, it->second);
+      } else {
+        // The key is only in lhs
+        result.data_[key] = op(lhs_val, rhs.default_value_);
+      }
+    }
+    for (const auto &[key, rhs_val] : rhs.data_) {
+      if (auto it = lhs.data_.find(key); it == lhs.data_.end()) {
+        // The key is only in rhs
+        result.data_[key] = op(lhs.default_value_, rhs_val);
+      }
+    }
+    result.default_value_ = op(lhs.default_value_, rhs.default_value_);
+    return result;
   }
 };
+
+////////////////////////////
+// Nonmodifying Operators //
+////////////////////////////
+
+template <Arithmetic T>
+Vector<T> operator+(const Vector<T> &lhs, const Vector<T> &rhs) {
+  return apply_binary(lhs, rhs, [](T a, T b) { return a + b; }, "+");
+}
+
+template <Arithmetic T>
+Vector<T> operator-(const Vector<T> &lhs, const Vector<T> &rhs) {
+  return apply_binary(lhs, rhs, [](T a, T b) { return a - b; }, "-");
+}
+
+template <Arithmetic T>
+Vector<T> operator*(const Vector<T> &lhs, const Vector<T> &rhs) {
+  return apply_binary(lhs, rhs, [](T a, T b) { return a * b; }, "*");
+}
+
+template <Arithmetic T>
+Vector<bool> operator==(const Vector<T> &lhs, const Vector<T> &rhs) {
+  return apply_binary(lhs, rhs, [](T a, T b) { return a == b; }, "==");
+}
+
+template <Arithmetic T>
+Vector<bool> operator<(const Vector<T> &lhs, const Vector<T> &rhs) {
+  return apply_binary(lhs, rhs, [](T a, T b) { return a < b; }, "<");
+}
+
+// TODO(elijahkin) We can easily add the other comparators if needed.
+
+template <Arithmetic T> T dot(const Vector<T> &lhs, const Vector<T> &rhs) {
+  return reduce(lhs * rhs, [](T a, T b) { return a + b; });
+}
+
+// TODO(elijahkin) Eventually we should update `reduce` to ensure these exit
+// early
+bool any(const Vector<bool> &vec) {
+  return reduce(vec, [](bool a, bool b) { return a || b; });
+}
+
+bool all(const Vector<bool> &vec) {
+  return reduce(vec, [](bool a, bool b) { return a && b; });
+}
 
 } // namespace spla

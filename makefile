@@ -1,5 +1,5 @@
 CC = g++-15
-CFLAGS = -std=c++23 -O2 -Wall -Wextra -Wpedantic -Werror -fopenmp
+CFLAGS = -std=c++23 -O2 -Wall -Wextra -Wpedantic
 
 all: vector_test
 

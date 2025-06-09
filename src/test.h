@@ -6,6 +6,16 @@
 // from Google Test. We first define several macros for making assertions within
 // tests, and then the `TestSuite` class itself.
 
+#define EXPECT_TRUE(condition)                                                 \
+  if (!condition) {                                                            \
+    throw std::runtime_error("EXPECT_TRUE failed");                            \
+  }
+
+#define EXPECT_FALSE(condition)                                                \
+  if (condition) {                                                             \
+    throw std::runtime_error("EXPECT_FALSE failed");                           \
+  }
+
 #define EXPECT_EQ(val1, val2)                                                  \
   if (!((val1) == (val2))) {                                                   \
     throw std::runtime_error("EXPECT_EQ failed");                              \
