@@ -6,5 +6,5 @@ This is a simple library for sparse linear algebra computations aimed toward num
 * Address `TODO` comments and thoroughly document each class and function.
 * Add parallelism with OpenMP. We already are compiling with `-fopenmp`.
 * Enforce good C++ practices: `#define` guards, long member functions outside class definitions.
-* Consider whether `shape_` would make more sense as a template parameter.
+* Consider whether `shape_` would make more sense as a template parameter. We should then use CTAD on the factory constructors.
 * Generalize to handle `spla::Tensor` of arbitrary rank. To accomplish this we should supply a `Shape` class, which is a wrapper around `std::vector<size_t>`. As of C++23, `operator[]` can be used for multidimensional subscripts.

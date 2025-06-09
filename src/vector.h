@@ -9,11 +9,12 @@ namespace spla {
 // multiplication, and absolute value.
 template <typename T>
 concept Arithmetic = requires(T a, T b) {
-  abs(a);
-  exp(a);
   a += b;
   a -= b;
   a *= b;
+  abs(a);
+  exp(a);
+  pow(a, b);
 };
 
 typedef size_t Shape;
@@ -133,10 +134,16 @@ public:
     return apply_binary(lhs, rhs, [](T &a, const T &b) { a = a * b; }, "*");
   }
 
+  friend Vector<T> pow(const Vector<T> &lhs, const Vector<T> &rhs) {
+    return apply_binary(
+        lhs, rhs, [](T &a, const T &b) { a = pow(a, b); }, "pow");
+  }
+
   // Implements the behavior for `vec1 == vec2`, which are considered equal if
   // they have the same shape, default value, and data. The behavior for `vec1
   // != vec2` is also inferred from this.
-  // TODO(elijahkin) This should probably be done with `apply_binary`.
+  // TODO(elijahkin) This should probably be done with `apply_binary`. But first
+  // we need to implement `any` and `all`.
   friend bool operator==(const Vector<T> &lhs, const Vector<T> &rhs) {
     return lhs.shape_ == rhs.shape_ &&
            lhs.default_value_ == rhs.default_value_ && lhs.data_ == rhs.data_;
@@ -145,34 +152,31 @@ public:
   // TODO(elijahkin) Should we implement a spaceship operator?
   // friend Vector<bool> operator<=>
 
+  // TODO(elijahkin) Generalize `reduce` as much as possible.
+  // friend T reduce(const Vector<T> &vec, std::function<T(T, T)> op, T
+  // initial_value) {
+  friend T reduce(const Vector<T> &vec) {
+    T result = vec.default_value_ * (vec.shape_ - vec.data_.size());
+    for (const auto &[_, val] : vec.data_) {
+      result += val;
+    }
+    return result;
+  }
+
+  friend T dot(const Vector<T> &lhs, const Vector<T> &rhs) {
+    return reduce(lhs * rhs);
+  }
+
+  friend double norm(const Vector<T> &vec, int ord) {
+    auto exp = full(vec.shape_, ord);
+    auto sum = reduce(pow(abs(vec), exp));
+    return pow(sum, 1.0 / ord);
+  }
+
   // TODO(elijahkin) We can eliminate these if shape is a template parameter.
   Vector<T> &operator+=(T rhs) { return *this += full(shape_, rhs); }
 
   Vector<T> &operator*=(T rhs) { return *this *= full(shape_, rhs); }
-
-  friend T dot(const Vector<T> &lhs, const Vector<T> &rhs) {
-    if (lhs.shape_ != rhs.shape_) {
-      throw std::invalid_argument("Dot expects operands of the same shape");
-    }
-    // TODO(elijahkin) Canonicalize to always iterate over the smaller map
-    T dot = T{};
-    for (const auto &[key, lhs_val] : lhs.data_) {
-      if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
-        const T rhs_val = it->second;
-        dot += lhs_val * rhs_val;
-      }
-    }
-    return dot;
-  }
-
-  friend double norm(const Vector<T> &vec, int ord) {
-    double sum =
-        (vec.shape_ - vec.data_.size()) * pow(abs(vec.default_value_), ord);
-    for (const auto &[_, val] : vec.data_) {
-      sum += pow(abs(val), ord);
-    }
-    return pow(sum, 1.0 / ord);
-  }
 
 private:
   std::unordered_map<size_t, T> data_;

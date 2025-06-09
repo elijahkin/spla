@@ -1,6 +1,8 @@
 #include "test.h"
 #include "vector.h"
 
+#include <numbers>
+
 TEST(VectorBasics) {
   auto v = spla::Vector<int>::zeros(10);
   EXPECT_NEAR(norm(v, 2), 0, 1e-6);
@@ -164,6 +166,48 @@ TEST(AbsoluteValue) {
   EXPECT_EQ(v[0], -3);
   EXPECT_EQ(v[1], 4);
   EXPECT_EQ(v[2], -2);
+}
+
+TEST(Exponential) {
+  auto v = spla::Vector<double>::zeros(2);
+  v[1] = 1;
+
+  auto exp_v = exp(v);
+  EXPECT_NEAR(exp_v[0], 1, 1e-6);
+  EXPECT_NEAR(exp_v[1], std::numbers::e_v<double>, 1e-6);
+
+  EXPECT_EQ(v[0], 0);
+  EXPECT_EQ(v[1], 1);
+}
+
+TEST(Power) {
+  auto v = spla::Vector<int>::full(4, 2);
+  v[0] = 1;
+  v[1] = 2;
+  v[2] = 3;
+
+  auto v_pow_v = pow(v, v);
+  EXPECT_EQ(v_pow_v[0], 1);
+  EXPECT_EQ(v_pow_v[1], 4);
+  EXPECT_EQ(v_pow_v[2], 27);
+  EXPECT_EQ(v_pow_v[3], 4);
+
+  EXPECT_EQ(v[0], 1);
+  EXPECT_EQ(v[1], 2);
+  EXPECT_EQ(v[2], 3);
+  EXPECT_EQ(v[3], 2);
+}
+
+TEST(Reduce) {
+  auto v = spla::Vector<int>::ones(5);
+  v[2] = 7;
+  v[3] = -1;
+  EXPECT_EQ(reduce(v), 9);
+}
+
+TEST(InnerProduct) {
+  auto v = spla::Vector<int>::ones(5);
+  EXPECT_EQ(dot(v, v), 5);
 }
 
 int main() {
