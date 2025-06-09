@@ -4,7 +4,7 @@
 #include <numbers>
 
 TEST(VectorBasics) {
-  auto v = spla::Vector<int>::zeros(10);
+  auto v = spla::Vector<int, 10>::zeros();
   EXPECT_NEAR(norm(v, 2), 0, 1e-6);
 
   v[1] = -7;
@@ -13,7 +13,7 @@ TEST(VectorBasics) {
   EXPECT_EQ(v[1], -14);
   EXPECT_EQ(v[3], 8);
 
-  auto w = spla::Vector<int>::zeros(10);
+  auto w = spla::Vector<int, 10>::zeros();
   w[3] = 2;
   w[5] = 1;
   EXPECT_EQ(w[3], 2);
@@ -30,7 +30,7 @@ TEST(VectorBasics) {
 }
 
 TEST(SubscriptSparsity) {
-  auto v = spla::Vector<double>::zeros(5);
+  auto v = spla::Vector<double, 5>::zeros();
   v[0] = 1.0;
   v[2] = 1.0;
   v[3] = 1.0;
@@ -42,9 +42,9 @@ TEST(SubscriptSparsity) {
 }
 
 TEST(NonzeroDefaultValues) {
-  const auto one = spla::Vector<double>::ones(3);
-  const auto two = spla::Vector<double>::full(3, 2);
-  const auto three = spla::Vector<double>::full(3, 3);
+  const auto one = spla::Vector<double, 3>::ones();
+  const auto two = spla::Vector<double, 3>::full(2);
+  const auto three = spla::Vector<double, 3>::full(3);
 
   auto v = one;
   EXPECT_NEAR(v[0], 1, 1e-6);
@@ -60,14 +60,11 @@ TEST(NonzeroDefaultValues) {
 }
 
 TEST(ShapeExceptions) {
-  auto v1 = spla::Vector<int>::zeros(5);
-  auto v2 = spla::Vector<int>::zeros(3);
-  auto v3 = spla::Vector<int>::zeros(5);
+  auto v1 = spla::Vector<int, 5>::zeros();
+  auto v2 = spla::Vector<int, 3>::zeros();
+  auto v3 = spla::Vector<int, 5>::zeros();
 
-  EXPECT_THROW(v1 += v2, std::invalid_argument);
   EXPECT_NO_THROW(v1 += v3);
-
-  EXPECT_THROW(dot(v2, v1), std::invalid_argument);
   EXPECT_NO_THROW(dot(v3, v1));
 
   EXPECT_NO_THROW(v1[0]);
@@ -78,9 +75,9 @@ TEST(ShapeExceptions) {
 }
 
 TEST(Equality) {
-  auto v1 = spla::Vector<int>::zeros(5);
-  auto v2 = spla::Vector<int>::zeros(5);
-  auto v3 = spla::Vector<int>::ones(5);
+  auto v1 = spla::Vector<int, 5>::zeros();
+  auto v2 = spla::Vector<int, 5>::zeros();
+  auto v3 = spla::Vector<int, 5>::ones();
 
   EXPECT_TRUE(spla::all(v1 == v2));
   EXPECT_FALSE(spla::all(v1 == v3));
@@ -91,12 +88,12 @@ TEST(Equality) {
 }
 
 TEST(NonmodifyingAddition) {
-  auto v = spla::Vector<int>::ones(4);
+  auto v = spla::Vector<int, 4>::ones();
   v[0] = 0;
   v[2] = 0;
   EXPECT_EQ(v.sparsity(), 2);
 
-  auto w = spla::Vector<int>::full(4, 2);
+  auto w = spla::Vector<int, 4>::full(2);
   w[0] = 0;
   w[1] = 0;
   EXPECT_EQ(w.sparsity(), 2);
@@ -110,19 +107,19 @@ TEST(NonmodifyingAddition) {
 }
 
 TEST(TypeConversion) {
-  auto one_int = spla::Vector<int>::ones(3);
-  auto one_double = spla::Vector<double>::ones(3);
-  auto two_double = spla::Vector<double>::full(3, 2);
+  auto one_int = spla::Vector<int, 3>::ones();
+  auto one_double = spla::Vector<double, 3>::ones();
+  auto two_double = spla::Vector<double, 3>::full(2);
 
-  auto v = static_cast<spla::Vector<double>>(one_int);
+  auto v = static_cast<spla::Vector<double, 3>>(one_int);
   EXPECT_TRUE(spla::all(v == one_double));
   EXPECT_FALSE(spla::all(v == two_double));
 }
 
 TEST(AdditionWithScalar) {
-  auto v = spla::Vector<int>::zeros(3);
-  auto one = spla::Vector<int>::ones(3);
-  auto two = spla::Vector<int>::full(3, 2);
+  auto v = spla::Vector<int, 3>::zeros();
+  auto one = spla::Vector<int, 3>::ones();
+  auto two = spla::Vector<int, 3>::full(2);
 
   EXPECT_FALSE(spla::all(v == one));
   EXPECT_FALSE(spla::all(v == two));
@@ -137,9 +134,9 @@ TEST(AdditionWithScalar) {
 }
 
 TEST(AssignmentAndEquality) {
-  auto v = spla::Vector<int>::ones(3);
+  auto v = spla::Vector<int, 3>::ones();
   auto one = v;
-  auto two = spla::Vector<int>::full(3, 2);
+  auto two = spla::Vector<int, 3>::full(2);
   EXPECT_TRUE(spla::all(v == one));
   EXPECT_FALSE(spla::all(v == two));
 
@@ -153,7 +150,7 @@ TEST(AssignmentAndEquality) {
 }
 
 TEST(AbsoluteValue) {
-  auto v = spla::Vector<int>::zeros(3);
+  auto v = spla::Vector<int, 3>::zeros();
   v[0] = -3;
   v[1] = 4;
   v[2] = -2;
@@ -169,7 +166,7 @@ TEST(AbsoluteValue) {
 }
 
 TEST(Exponential) {
-  auto v = spla::Vector<double>::zeros(2);
+  auto v = spla::Vector<double, 2>::zeros();
   v[1] = 1;
 
   auto exp_v = exp(v);
@@ -181,7 +178,7 @@ TEST(Exponential) {
 }
 
 TEST(Power) {
-  auto v = spla::Vector<int>::full(4, 2);
+  auto v = spla::Vector<int, 4>::full(2);
   v[0] = 1;
   v[1] = 2;
   v[2] = 3;
@@ -199,14 +196,14 @@ TEST(Power) {
 }
 
 TEST(Reduce) {
-  auto v = spla::Vector<int>::ones(5);
+  auto v = spla::Vector<int, 5>::ones();
   v[2] = 7;
   v[3] = -1;
   EXPECT_EQ(reduce(v, [](int a, int b) { return a + b; }), 9);
 }
 
 TEST(InnerProduct) {
-  auto v = spla::Vector<int>::ones(5);
+  auto v = spla::Vector<int, 5>::ones();
   EXPECT_EQ(dot(v, v), 5);
 }
 

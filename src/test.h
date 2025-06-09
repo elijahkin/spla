@@ -1,17 +1,17 @@
 #include "log.h"
 
+#include <iostream>
 #include <vector>
 
 // This file is a simple testing framework for C++, taking heavy inspiration
 // from Google Test. We first define several macros for making assertions within
 // tests, and then the `TestSuite` class itself.
 
-#define EXPECT_TRUE(condition)                                                 \
-  if (!(condition)) {                                                          \
-    throw std::runtime_error("EXPECT_TRUE failed");                            \
-  }
+#define EXPECT_TRUE(condition) EXPECT_FALSE(!(condition))
 
-#define EXPECT_FALSE(condition) EXPECT_TRUE(!condition)
+#define EXPECT_FALSE(condition)                                                \
+  if (condition)                                                               \
+    throw std::runtime_error("EXPECT_FALSE failed");
 
 #define EXPECT_EQ(val1, val2) EXPECT_TRUE((val1) == (val2))
 
@@ -32,14 +32,10 @@
   }
 
 #define EXPECT_NO_THROW(stmt)                                                  \
-  {                                                                            \
-    bool caught = false;                                                       \
-    try {                                                                      \
-      stmt;                                                                    \
-    } catch (const std::exception &e) {                                        \
-      caught = true;                                                           \
-    }                                                                          \
-    EXPECT_FALSE(caught);                                                      \
+  try {                                                                        \
+    stmt;                                                                      \
+  } catch (const std::exception &e) {                                          \
+    EXPECT_FALSE(true)                                                         \
   }
 
 #define TEST(test_name)                                                        \
