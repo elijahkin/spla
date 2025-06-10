@@ -3,7 +3,7 @@
 
 #include <numbers>
 
-TEST(TensorBasics) {
+TEST(VectorBasics) {
   auto v = spla::Tensor<int, 10>::zeros();
   EXPECT_NEAR(norm(v, 2), 0, 1e-6);
 
@@ -48,28 +48,29 @@ TEST(NonzeroDefaultValues) {
 
   auto v = one;
   EXPECT_NEAR(v[0], 1, 1e-6);
-  EXPECT_NEAR(norm(v, 2), sqrt(3), 1e-6); // EXPECT_NEAR(v, one, 1e-6);
+  EXPECT_NEAR(norm(v, 2), sqrt(3), 1e-6);
 
   auto w = two;
   EXPECT_NEAR(w[0], 2, 1e-6);
-  EXPECT_NEAR(norm(w, 2), sqrt(12), 1e-6); // EXPECT_NEAR(w, two, 1e-6);
+  EXPECT_NEAR(norm(w, 2), sqrt(12), 1e-6);
 
   v = v + w;
   EXPECT_NEAR(v[0], 3, 1e-6);
-  EXPECT_NEAR(norm(v, 2), sqrt(27), 1e-6); // EXPECT_NEAR(v, three, 1e-6);
+  EXPECT_NEAR(norm(v, 2), sqrt(27), 1e-6);
+  EXPECT_TRUE(spla::all(v == three));
 }
 
 TEST(Equality) {
-  auto v1 = spla::Tensor<int, 5>::zeros();
-  auto v2 = spla::Tensor<int, 5>::zeros();
-  auto v3 = spla::Tensor<int, 5>::ones();
+  const auto zero = spla::Tensor<int, 5>::zeros();
+  const auto one = spla::Tensor<int, 5>::ones();
+  auto v = spla::Tensor<int, 5>::zeros();
 
-  EXPECT_TRUE(spla::all(v1 == v2));
-  EXPECT_FALSE(spla::all(v1 == v3));
-  EXPECT_FALSE(spla::all(v2 == v3));
+  EXPECT_TRUE(spla::all(zero == v));
+  EXPECT_TRUE(!spla::any(zero == one));
+  EXPECT_TRUE(!spla::all(v == one));
 
-  v2[0] = 1;
-  EXPECT_FALSE(spla::all(v1 == v2));
+  v[0] = 1;
+  EXPECT_TRUE(spla::any(v == one));
 }
 
 TEST(NonmodifyingAddition) {
@@ -92,9 +93,9 @@ TEST(NonmodifyingAddition) {
 }
 
 TEST(TypeConversion) {
-  auto one_int = spla::Tensor<int, 3>::ones();
-  auto one_double = spla::Tensor<double, 3>::ones();
-  auto two_double = spla::Tensor<double, 3>::full(2);
+  const auto one_int = spla::Tensor<int, 3>::ones();
+  const auto one_double = spla::Tensor<double, 3>::ones();
+  const auto two_double = spla::Tensor<double, 3>::full(2);
 
   auto v = static_cast<spla::Tensor<double, 3>>(one_int);
   EXPECT_TRUE(spla::all(v == one_double));
@@ -102,9 +103,9 @@ TEST(TypeConversion) {
 }
 
 TEST(AdditionWithScalar) {
+  const auto one = spla::Tensor<int, 3>::ones();
+  const auto two = spla::Tensor<int, 3>::full(2);
   auto v = spla::Tensor<int, 3>::zeros();
-  auto one = spla::Tensor<int, 3>::ones();
-  auto two = spla::Tensor<int, 3>::full(2);
 
   EXPECT_FALSE(spla::all(v == one));
   EXPECT_FALSE(spla::all(v == two));
@@ -120,8 +121,8 @@ TEST(AdditionWithScalar) {
 
 TEST(AssignmentAndEquality) {
   auto v = spla::Tensor<int, 3>::ones();
-  auto one = v;
-  auto two = spla::Tensor<int, 3>::full(2);
+  const auto one = v;
+  const auto two = spla::Tensor<int, 3>::full(2);
   EXPECT_TRUE(spla::all(v == one));
   EXPECT_FALSE(spla::all(v == two));
 
@@ -188,8 +189,19 @@ TEST(Reduce) {
 }
 
 TEST(InnerProduct) {
-  auto v = spla::Tensor<int, 5>::ones();
-  EXPECT_EQ(dot(v, v), 5);
+  const auto one = spla::Tensor<int, 5>::ones();
+  EXPECT_EQ(dot(one, one), 5);
+}
+
+TEST(MatrixBasics) {
+  auto A = spla::Tensor<float, 2, 2>::zeros();
+  // A[0, 0] = 1;
+  // A[1, 1] = 1;
+
+  auto B = spla::Tensor<float, 2, 2>::ones();
+  B += A;
+  const auto two = spla::Tensor<float, 2, 2>::full(2);
+  EXPECT_TRUE(spla::all(B == two));
 }
 
 int main() {

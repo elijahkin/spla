@@ -21,18 +21,21 @@ concept Arithmetic = requires(T a, T b) {
 };
 
 // Implements a sparse tensor represented internally by `std::unordered_map`. If
-// an index `i` between 0 and `Shape` is not present as a key in the map, that
-// entry is implicitly `default_value_`.
-template <Arithmetic T, size_t Shape> class Tensor {
+// an index is not present as a key in the map, that entry is implicitly
+// `default_value_`.
+template <Arithmetic T, size_t... shape> class Tensor {
 public:
   // This is required by the conversion constructor.
-  template <Arithmetic OtherT, size_t OtherShape> friend class Tensor;
+  template <Arithmetic OtherT, size_t... other_shape> friend class Tensor;
 
   ///////////////////////
   // Factory Functions //
-  ///////console, indicating whether each test passed or failed.////////////////
+  ///////////////////////
 
-  static auto full(T default_value) { return Tensor<T, Shape>(default_value); }
+  // TODO(elijakin) Can we make these free?
+  static auto full(T default_value) {
+    return Tensor<T, shape...>(default_value);
+  }
 
   static auto zeros() { return full(0); }
 
@@ -46,7 +49,7 @@ public:
 
   // TODO(elijahkin) Could this be done with `apply_unary`?
   template <Arithmetic U>
-  Tensor(const Tensor<U, Shape> &other)
+  Tensor(const Tensor<U, shape...> &other)
       : default_value_(static_cast<T>(other.default_value_)) {
     for (const auto &[key, val] : other.data_) {
       data_[key] = static_cast<T>(val);
@@ -62,7 +65,7 @@ public:
   // accidently written to `data_`.
   class SubscriptProxy {
   public:
-    SubscriptProxy(Tensor<T, Shape> *vec, size_t i) : vec_(vec), i_(i) {}
+    SubscriptProxy(Tensor<T, shape...> *vec, size_t i) : vec_(vec), i_(i) {}
 
     // Implements the behavior for `vec[i] = val`.
     // TODO(elijahkin) Is this the right return type for this?
@@ -83,7 +86,7 @@ public:
     }
 
   private:
-    Tensor<T, Shape> *vec_;
+    Tensor<T, shape...> *vec_;
     size_t i_;
   };
 
@@ -98,11 +101,11 @@ public:
   ///////////////////
 
   friend std::ostream &operator<<(std::ostream &os,
-                                  const Tensor<T, Shape> &vec) {
+                                  const Tensor<T, shape...> &vec) {
     return os << std::format("{}", vec.data_);
   }
 
-  size_t elements_in() const { return Shape; }
+  size_t elements_in() const { return (1 * ... * shape); }
 
   size_t sparsity() const { return data_.size(); }
 
@@ -111,7 +114,8 @@ public:
   // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
   // instead of `T`; this will make generalization much easier.
   // TODO(elijahkin) Once working, restore `-Werror` as a compiler flag.
-  friend auto reduce(const Tensor<T, Shape> &vec, std::function<T(T, T)> op) {
+  friend auto reduce(const Tensor<T, shape...> &vec,
+                     std::function<T(T, T)> op) {
     auto result = vec.default_value_ * (vec.elements_in() - vec.sparsity());
     for (const auto &[_, val] : vec.data_) {
       result = op(result, val);
@@ -123,15 +127,15 @@ public:
   // Elementwise Operations //
   ////////////////////////////
 
-  auto &operator+=(const Tensor<T, Shape> &rhs) {
+  auto &operator+=(const Tensor<T, shape...> &rhs) {
     return this->apply_binary_inplace([](T &a, const T &b) { a += b; }, rhs);
   }
 
-  auto &operator-=(const Tensor<T, Shape> &rhs) {
+  auto &operator-=(const Tensor<T, shape...> &rhs) {
     return this->apply_binary_inplace([](T &a, const T &b) { a -= b; }, rhs);
   }
 
-  auto &operator*=(const Tensor<T, Shape> &rhs) {
+  auto &operator*=(const Tensor<T, shape...> &rhs) {
     return this->apply_binary_inplace([](T &a, const T &b) { a *= b; }, rhs);
   }
 
@@ -139,10 +143,9 @@ public:
   // argument order, we can merge these functions into a single variadic
   // `apply_elementwise` function.
   template <typename UnaryOp>
-  friend auto apply_unary(UnaryOp op, const Tensor<T, Shape> &vec)
-      -> Tensor<decltype(op(std::declval<T>())), Shape> {
-    using U = decltype(op(std::declval<T>()));
-    Tensor<U, Shape> result = full(op(vec.default_value_));
+  friend auto apply_unary(UnaryOp op, const Tensor<T, shape...> &vec)
+      -> Tensor<decltype(op(std::declval<T>())), shape...> {
+    auto result = full(op(vec.default_value_));
     for (const auto &[key, val] : vec.data_) {
       result.data_[key] = op(val);
     }
@@ -152,11 +155,10 @@ public:
   // TODO(elijahkin) This should be modified to call `apply_binary_inplace` and
   // subsequently be made private.
   template <typename BinaryOp>
-  friend auto apply_binary(BinaryOp op, const Tensor<T, Shape> &lhs,
-                           const Tensor<T, Shape> &rhs)
-      -> Tensor<decltype(op(std::declval<T>(), std::declval<T>())), Shape> {
-    using U = decltype(op(std::declval<T>(), std::declval<T>()));
-    Tensor<U, Shape> result = full(op(lhs.default_value_, rhs.default_value_));
+  friend auto apply_binary(BinaryOp op, const Tensor<T, shape...> &lhs,
+                           const Tensor<T, shape...> &rhs)
+      -> Tensor<decltype(op(std::declval<T>(), std::declval<T>())), shape...> {
+    auto result = full(op(lhs.default_value_, rhs.default_value_));
     for (const auto &[key, lhs_val] : lhs.data_) {
       if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
         // The key is in both lhs and rhs
@@ -175,8 +177,8 @@ public:
     return result;
   }
 
-  friend Tensor<T, Shape> pow(const Tensor<T, Shape> &lhs,
-                              const Tensor<T, Shape> &rhs) {
+  friend Tensor<T, shape...> pow(const Tensor<T, shape...> &lhs,
+                                 const Tensor<T, shape...> &rhs) {
     return apply_binary([](T a, T b) { return std::pow(a, b); }, lhs, rhs);
   }
 
@@ -185,7 +187,7 @@ private:
   T default_value_;
 
   auto &apply_binary_inplace(std::function<void(T &, const T &)> op,
-                             const Tensor<T, Shape> &rhs) {
+                             const Tensor<T, shape...> &rhs) {
     for (auto &[key, lhs_val] : data_) {
       if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
         // The key is only in lhs
@@ -208,38 +210,41 @@ private:
 // Elementwise Operations //
 ////////////////////////////
 
-template <Arithmetic T, size_t Shape> auto abs(const Tensor<T, Shape> &vec) {
+template <Arithmetic T, size_t... shape>
+auto abs(const Tensor<T, shape...> &vec) {
   return apply_unary([](T a) { return std::abs(a); }, vec);
 }
 
-template <Arithmetic T, size_t Shape> auto exp(const Tensor<T, Shape> &vec) {
+template <Arithmetic T, size_t... shape>
+auto exp(const Tensor<T, shape...> &vec) {
   return apply_unary([](T a) { return std::exp(a); }, vec);
 }
 
-template <Arithmetic T, size_t Shape>
-auto operator+(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+template <Arithmetic T, size_t... shape>
+auto operator+(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a + b; }, lhs, rhs);
 }
 
-template <Arithmetic T, size_t Shape>
-auto operator-(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+template <Arithmetic T, size_t... shape>
+auto operator-(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a - b; }, lhs, rhs);
 }
 
-template <Arithmetic T, size_t Shape>
-auto operator*(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+template <Arithmetic T, size_t... shape>
+auto operator*(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a * b; }, lhs, rhs);
 }
 
-template <Arithmetic T, size_t Shape>
-auto operator<(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+template <Arithmetic T, size_t... shape>
+auto operator<(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a < b; }, lhs, rhs);
 }
 
 // TODO(elijahkin) We can easily add the other comparators if needed.
 
-template <Arithmetic T, size_t Shape>
-auto operator==(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+template <Arithmetic T, size_t... shape>
+auto operator==(const Tensor<T, shape...> &lhs,
+                const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a == b; }, lhs, rhs);
 }
 
@@ -249,21 +254,21 @@ auto operator==(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
 
 // TODO(elijahkin) Eventually we should update `reduce` to ensure `all` and
 // `any` exit early.
-template <size_t Shape> bool all(const Tensor<bool, Shape> &vec) {
+template <size_t... shape> bool all(const Tensor<bool, shape...> &vec) {
   return reduce(vec, [](bool a, bool b) { return a && b; });
 }
 
-template <size_t Shape> bool any(const Tensor<bool, Shape> &vec) {
+template <size_t... shape> bool any(const Tensor<bool, shape...> &vec) {
   return reduce(vec, [](bool a, bool b) { return a || b; });
 }
 
-template <Arithmetic T, size_t Shape>
-T dot(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+template <Arithmetic T, size_t... shape>
+T dot(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return reduce(lhs * rhs, [](T a, T b) { return a + b; });
 }
 
-template <Arithmetic T, size_t Shape>
-double norm(const Tensor<T, Shape> &vec, int ord) {
+template <Arithmetic T, size_t... shape>
+double norm(const Tensor<T, shape...> &vec, int ord) {
   return std::pow(reduce(pow(abs(vec), ord), [](T a, T b) { return a + b; }),
                   1.0 / ord);
 }
