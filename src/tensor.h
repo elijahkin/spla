@@ -2,8 +2,8 @@
 #include <cstddef>
 #include <format>
 #include <functional>
+#include <map>
 #include <ostream>
-#include <unordered_map>
 
 namespace spla {
 
@@ -20,11 +20,13 @@ concept Arithmetic = requires(T a, T b) {
   pow(a, b);
 };
 
-// Implements a sparse tensor represented internally by `std::unordered_map`. If
-// an index is not present as a key in the map, that entry is implicitly
+// Implements a sparse tensor represented internally by a map `data_`. If an
+// index is not present as a key in the map, that entry is implicitly
 // `default_value_`.
 template <Arithmetic T, size_t... shape> class Tensor {
 public:
+  typedef std::array<size_t, sizeof...(shape)> Index;
+
   // This is required by the conversion constructor.
   template <Arithmetic OtherT, size_t... other_shape> friend class Tensor;
 
@@ -65,21 +67,22 @@ public:
   // accidently written to `data_`.
   class SubscriptProxy {
   public:
-    SubscriptProxy(Tensor<T, shape...> *vec, size_t i) : vec_(vec), i_(i) {}
+    SubscriptProxy(Tensor<T, shape...> *vec, Index idx)
+        : vec_(vec), idx_(idx) {}
 
     // Implements the behavior for `vec[i] = val`.
     // TODO(elijahkin) Is this the right return type for this?
     // TODO(elijahkin) Should we prevent writing default values?
     SubscriptProxy &operator=(const T &val) {
-      vec_->data_[i_] = val;
+      vec_->data_[idx_] = val;
       return *this;
     }
 
-    // Casts a `SubscriptProxy` to the type `T`. If the index `i_` is present in
-    // `vec_->data_`, it returns the value at that index; otherwise, it returns
-    // the default value of `vec_`.
+    // Casts a `SubscriptProxy` object to the entry type `T`. It searches for
+    // the whether `index_` is a key in `vec->data_`. If so, it returns its
+    // associated value, and `vec->default_value_` otherwise.
     operator T() const {
-      if (auto it = vec_->data_.find(i_); it != vec_->data_.end()) {
+      if (auto it = vec_->data_.find(idx_); it != vec_->data_.end()) {
         return it->second;
       }
       return vec_->default_value_;
@@ -87,13 +90,13 @@ public:
 
   private:
     Tensor<T, shape...> *vec_;
-    size_t i_;
+    Index idx_;
   };
 
-  SubscriptProxy operator[](size_t i) {
-    // TODO(elijahkin) Should we allow negative indices? If so, we will have to
-    // slightly redesign given that size_t is unsigned.
-    return SubscriptProxy(this, i);
+  // TODO(elijahkin) Should we allow negative indices? If so, we can replace
+  // size_t with ssize_t
+  template <typename... Args> SubscriptProxy operator[](Args... idx) {
+    return SubscriptProxy(this, {(static_cast<std::size_t>(idx))...});
   }
 
   ///////////////////
@@ -183,7 +186,8 @@ public:
   }
 
 private:
-  std::unordered_map<size_t, T> data_;
+  // TODO(elijahkin) Can we debug why `std::unordered_map` doesn't compile?
+  std::map<Index, T> data_;
   T default_value_;
 
   auto &apply_binary_inplace(std::function<void(T &, const T &)> op,
