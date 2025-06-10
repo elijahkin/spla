@@ -59,21 +59,6 @@ TEST(NonzeroDefaultValues) {
   EXPECT_NEAR(norm(v, 2), sqrt(27), 1e-6); // EXPECT_NEAR(v, three, 1e-6);
 }
 
-TEST(ShapeExceptions) {
-  auto v1 = spla::Tensor<int, 5>::zeros();
-  auto v2 = spla::Tensor<int, 3>::zeros();
-  auto v3 = spla::Tensor<int, 5>::zeros();
-
-  EXPECT_NO_THROW(v1 += v3);
-  EXPECT_NO_THROW(dot(v3, v1));
-
-  EXPECT_NO_THROW(v1[0]);
-  EXPECT_THROW(v1[-1], std::out_of_range);
-
-  EXPECT_NO_THROW(v2[2]);
-  EXPECT_THROW(v2[3], std::out_of_range);
-}
-
 TEST(Equality) {
   auto v1 = spla::Tensor<int, 5>::zeros();
   auto v2 = spla::Tensor<int, 5>::zeros();

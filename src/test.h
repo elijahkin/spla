@@ -2,44 +2,14 @@
 
 #include <chrono>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 // This file is a simple testing framework for C++, taking heavy inspiration
-// from Google Test. We first define several macros for making assertions within
-// tests, and then the `TestSuite` class itself.
-
-#define EXPECT_TRUE(condition) EXPECT_FALSE(!(condition))
-
-#define EXPECT_FALSE(condition)                                                \
-  if (condition)                                                               \
-    throw std::runtime_error("EXPECT_FALSE failed");
-
-#define EXPECT_EQ(val1, val2) EXPECT_TRUE((val1) == (val2))
-
-#define EXPECT_NE(val1, val2) EXPECT_FALSE((val1) == (val2))
-
-#define EXPECT_NEAR(val1, val2, abs_err)                                       \
-  EXPECT_TRUE(abs((val1) - (val2)) < abs_err)
-
-#define EXPECT_THROW(stmt, exc_type)                                           \
-  {                                                                            \
-    bool caught = false;                                                       \
-    try {                                                                      \
-      stmt;                                                                    \
-    } catch (const exc_type &e) {                                              \
-      caught = true;                                                           \
-    }                                                                          \
-    EXPECT_TRUE(caught)                                                        \
-  }
-
-#define EXPECT_NO_THROW(stmt)                                                  \
-  try {                                                                        \
-    stmt;                                                                      \
-  } catch (const std::exception &e) {                                          \
-    EXPECT_FALSE(true)                                                         \
-  }
+// from Google Test. We first define the `TestSuite` class itself, and then
+// several functions for making assertions within tests.
 
 #define TEST(test_name)                                                        \
   void test_name();                                                            \
@@ -81,3 +51,25 @@ public:
 private:
   static inline std::vector<std::pair<std::string, void (*)()>> tests_;
 };
+
+inline void EXPECT_TRUE(bool condition) {
+  if (!condition)
+    throw std::runtime_error("EXPECT_TRUE failed");
+}
+
+inline void EXPECT_FALSE(bool condition) { EXPECT_TRUE(!condition); }
+
+// TODO(elijahkin) Can we introduce a Comparable concept to clean these up?
+
+template <typename T1, typename T2> inline void EXPECT_EQ(T1 val1, T2 val2) {
+  EXPECT_TRUE(val1 == val2);
+}
+
+template <typename T1, typename T2> inline void EXPECT_NE(T1 val1, T2 val2) {
+  EXPECT_FALSE(val1 == val2);
+}
+
+template <typename T1, typename T2, typename T3>
+inline void EXPECT_NEAR(T1 val1, T2 val2, T3 abs_err) {
+  EXPECT_TRUE(abs(val1 - val2) < abs_err);
+}

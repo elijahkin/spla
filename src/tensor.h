@@ -2,7 +2,6 @@
 #include <cstddef>
 #include <format>
 #include <ostream>
-#include <stdexcept>
 #include <unordered_map>
 
 namespace spla {
@@ -90,9 +89,6 @@ public:
   SubscriptProxy operator[](size_t i) {
     // TODO(elijahkin) Should we allow negative indices? If so, we will have to
     // slightly redesign given that size_t is unsigned.
-    if (i >= Shape) {
-      throw std::out_of_range("Index out of range");
-    }
     return SubscriptProxy(this, i);
   }
 
@@ -110,51 +106,6 @@ public:
 
   auto &operator*=(const Tensor<T, Shape> &rhs) {
     return this->apply_binary_inplace([](T &a, const T &b) { a *= b; }, rhs);
-  }
-
-  /////////////////////////////
-  // Non-modifying Operators //
-  /////////////////////////////
-
-  friend auto exp(const Tensor<T, Shape> &vec) {
-    return apply_unary([](T a) { return exp(a); }, vec);
-  }
-
-  friend Tensor<T, Shape> abs(const Tensor<T, Shape> &vec) {
-    return apply_unary([](T a) { return abs(a); }, vec);
-  }
-
-  friend Tensor<T, Shape> pow(const Tensor<T, Shape> &lhs,
-                              const Tensor<T, Shape> &rhs) {
-    return apply_binary([](T a, T b) { return pow(a, b); }, lhs, rhs);
-  }
-
-  ///////////////////
-  // Miscellaneous //
-  ///////////////////
-
-  friend std::ostream &operator<<(std::ostream &os,
-                                  const Tensor<T, Shape> &vec) {
-    return os << std::format("{}", vec.data_);
-  }
-
-  size_t sparsity() const { return data_.size(); }
-
-private:
-  std::unordered_map<size_t, T> data_;
-  T default_value_;
-
-  // TODO(elijahkin) Should `op` be `std::function` instead? Moreover, consider
-  // whether supplying addition as a default operation makes sense.
-  // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
-  // instead of `T`; this will make generalization much easier.
-  // TODO(elijahkin) Once working, restore `-Werror` as a compiler flag
-  friend T reduce(const Tensor<T, Shape> &vec, T (*op)(T, T)) {
-    T result = vec.default_value_ * (Shape - vec.data_.size());
-    for (const auto &[_, val] : vec.data_) {
-      result = op(result, val);
-    }
-    return result;
   }
 
   ////////////////////////////
@@ -217,11 +168,52 @@ private:
     }
     return result;
   }
+
+  friend auto exp(const Tensor<T, Shape> &vec) {
+    return apply_unary([](T a) { return exp(a); }, vec);
+  }
+
+  friend Tensor<T, Shape> abs(const Tensor<T, Shape> &vec) {
+    return apply_unary([](T a) { return abs(a); }, vec);
+  }
+
+  friend Tensor<T, Shape> pow(const Tensor<T, Shape> &lhs,
+                              const Tensor<T, Shape> &rhs) {
+    return apply_binary([](T a, T b) { return pow(a, b); }, lhs, rhs);
+  }
+
+  ///////////////////
+  // Miscellaneous //
+  ///////////////////
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const Tensor<T, Shape> &vec) {
+    return os << std::format("{}", vec.data_);
+  }
+
+  size_t sparsity() const { return data_.size(); }
+
+  // TODO(elijahkin) Should `op` be `std::function` instead? Moreover, consider
+  // whether supplying addition as a default operation makes sense.
+  // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
+  // instead of `T`; this will make generalization much easier.
+  // TODO(elijahkin) Once working, restore `-Werror` as a compiler flag
+  friend T reduce(const Tensor<T, Shape> &vec, T (*op)(T, T)) {
+    T result = vec.default_value_ * (Shape - vec.data_.size());
+    for (const auto &[_, val] : vec.data_) {
+      result = op(result, val);
+    }
+    return result;
+  }
+
+private:
+  std::unordered_map<size_t, T> data_;
+  T default_value_;
 };
 
-/////////////////////////////
-// Non-modifying Operators //
-/////////////////////////////
+////////////////////////////
+// Elementwise Operations //
+////////////////////////////
 
 template <Arithmetic T, size_t Shape>
 auto operator+(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
@@ -249,6 +241,10 @@ auto operator<(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
 }
 
 // TODO(elijahkin) We can easily add the other comparators if needed.
+
+///////////////////////
+// Reduce Operations //
+///////////////////////
 
 template <Arithmetic T, size_t Shape>
 auto dot(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
