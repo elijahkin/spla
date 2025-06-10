@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstddef>
 #include <format>
+#include <functional>
 #include <ostream>
 #include <unordered_map>
 
@@ -24,12 +25,12 @@ concept Arithmetic = requires(T a, T b) {
 // entry is implicitly `default_value_`.
 template <Arithmetic T, size_t Shape> class Tensor {
 public:
-  // This is needed in order for the conversion constructor.
+  // This is required by the conversion constructor.
   template <Arithmetic OtherT, size_t OtherShape> friend class Tensor;
 
   ///////////////////////
   // Factory Functions //
-  ///////////////////////
+  ///////console, indicating whether each test passed or failed.////////////////
 
   static auto full(T default_value) { return Tensor<T, Shape>(default_value); }
 
@@ -52,9 +53,9 @@ public:
     }
   }
 
-  ////////////////////////
-  // Subscript Operator //
-  ////////////////////////
+  /////////////////////////
+  // Subscript Operation //
+  /////////////////////////
 
   // Handles reading and writing of tensor entries. This is the object returned
   // by `operator[]`, which is necessary to ensure that default values are not
@@ -92,9 +93,35 @@ public:
     return SubscriptProxy(this, i);
   }
 
-  /////////////////////////
-  // Modifying Operators //
-  /////////////////////////
+  ///////////////////
+  // Miscellaneous //
+  ///////////////////
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const Tensor<T, Shape> &vec) {
+    return os << std::format("{}", vec.data_);
+  }
+
+  size_t elements_in() const { return Shape; }
+
+  size_t sparsity() const { return data_.size(); }
+
+  // TODO(elijahkin) Consider whether supplying addition as a default operation
+  // would make sense.
+  // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
+  // instead of `T`; this will make generalization much easier.
+  // TODO(elijahkin) Once working, restore `-Werror` as a compiler flag.
+  friend auto reduce(const Tensor<T, Shape> &vec, std::function<T(T, T)> op) {
+    auto result = vec.default_value_ * (vec.elements_in() - vec.sparsity());
+    for (const auto &[_, val] : vec.data_) {
+      result = op(result, val);
+    }
+    return result;
+  }
+
+  ////////////////////////////
+  // Elementwise Operations //
+  ////////////////////////////
 
   auto &operator+=(const Tensor<T, Shape> &rhs) {
     return this->apply_binary_inplace([](T &a, const T &b) { a += b; }, rhs);
@@ -106,29 +133,6 @@ public:
 
   auto &operator*=(const Tensor<T, Shape> &rhs) {
     return this->apply_binary_inplace([](T &a, const T &b) { a *= b; }, rhs);
-  }
-
-  ////////////////////////////
-  // Elementwise Operations //
-  ////////////////////////////
-
-  // TODO(elijahkin) Try to somehow marry this function with those below.
-  template <typename BinaryOp>
-  Tensor<T, Shape> &apply_binary_inplace(BinaryOp op,
-                                         const Tensor<T, Shape> &rhs) {
-    for (auto &[key, lhs_val] : data_) {
-      if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
-        op(lhs_val, rhs.default_value_);
-      }
-    }
-    for (const auto &[key, rhs_val] : rhs.data_) {
-      if (auto it = data_.find(key); it == data_.end()) {
-        data_[key] = default_value_;
-      }
-      op(data_[key], rhs_val);
-    }
-    op(default_value_, rhs.default_value_);
-    return *this;
   }
 
   // TODO(elijahkin) If we introduce an `Operation` class and swap around the
@@ -145,6 +149,8 @@ public:
     return result;
   }
 
+  // TODO(elijahkin) This should be modified to call `apply_binary_inplace` and
+  // subsequently be made private.
   template <typename BinaryOp>
   friend auto apply_binary(BinaryOp op, const Tensor<T, Shape> &lhs,
                            const Tensor<T, Shape> &rhs)
@@ -169,51 +175,46 @@ public:
     return result;
   }
 
-  friend auto exp(const Tensor<T, Shape> &vec) {
-    return apply_unary([](T a) { return exp(a); }, vec);
-  }
-
-  friend Tensor<T, Shape> abs(const Tensor<T, Shape> &vec) {
-    return apply_unary([](T a) { return abs(a); }, vec);
-  }
-
   friend Tensor<T, Shape> pow(const Tensor<T, Shape> &lhs,
                               const Tensor<T, Shape> &rhs) {
-    return apply_binary([](T a, T b) { return pow(a, b); }, lhs, rhs);
-  }
-
-  ///////////////////
-  // Miscellaneous //
-  ///////////////////
-
-  friend std::ostream &operator<<(std::ostream &os,
-                                  const Tensor<T, Shape> &vec) {
-    return os << std::format("{}", vec.data_);
-  }
-
-  size_t sparsity() const { return data_.size(); }
-
-  // TODO(elijahkin) Should `op` be `std::function` instead? Moreover, consider
-  // whether supplying addition as a default operation makes sense.
-  // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
-  // instead of `T`; this will make generalization much easier.
-  // TODO(elijahkin) Once working, restore `-Werror` as a compiler flag
-  friend T reduce(const Tensor<T, Shape> &vec, T (*op)(T, T)) {
-    T result = vec.default_value_ * (Shape - vec.data_.size());
-    for (const auto &[_, val] : vec.data_) {
-      result = op(result, val);
-    }
-    return result;
+    return apply_binary([](T a, T b) { return std::pow(a, b); }, lhs, rhs);
   }
 
 private:
   std::unordered_map<size_t, T> data_;
   T default_value_;
+
+  auto &apply_binary_inplace(std::function<void(T &, const T &)> op,
+                             const Tensor<T, Shape> &rhs) {
+    for (auto &[key, lhs_val] : data_) {
+      if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
+        // The key is only in lhs
+        op(lhs_val, rhs.default_value_);
+      }
+    }
+    for (const auto &[key, rhs_val] : rhs.data_) {
+      if (auto it = data_.find(key); it == data_.end()) {
+        // The key is only in rhs
+        data_[key] = default_value_;
+      }
+      op(data_[key], rhs_val);
+    }
+    op(default_value_, rhs.default_value_);
+    return *this;
+  }
 };
 
 ////////////////////////////
 // Elementwise Operations //
 ////////////////////////////
+
+template <Arithmetic T, size_t Shape> auto abs(const Tensor<T, Shape> &vec) {
+  return apply_unary([](T a) { return std::abs(a); }, vec);
+}
+
+template <Arithmetic T, size_t Shape> auto exp(const Tensor<T, Shape> &vec) {
+  return apply_unary([](T a) { return std::exp(a); }, vec);
+}
 
 template <Arithmetic T, size_t Shape>
 auto operator+(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
@@ -231,40 +232,40 @@ auto operator*(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
 }
 
 template <Arithmetic T, size_t Shape>
-auto operator==(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
-  return apply_binary([](T a, T b) { return a == b; }, lhs, rhs);
-}
-
-template <Arithmetic T, size_t Shape>
 auto operator<(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return apply_binary([](T a, T b) { return a < b; }, lhs, rhs);
 }
 
 // TODO(elijahkin) We can easily add the other comparators if needed.
 
+template <Arithmetic T, size_t Shape>
+auto operator==(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+  return apply_binary([](T a, T b) { return a == b; }, lhs, rhs);
+}
+
 ///////////////////////
 // Reduce Operations //
 ///////////////////////
 
+// TODO(elijahkin) Eventually we should update `reduce` to ensure `all` and
+// `any` exit early.
+template <size_t Shape> bool all(const Tensor<bool, Shape> &vec) {
+  return reduce(vec, [](bool a, bool b) { return a && b; });
+}
+
+template <size_t Shape> bool any(const Tensor<bool, Shape> &vec) {
+  return reduce(vec, [](bool a, bool b) { return a || b; });
+}
+
 template <Arithmetic T, size_t Shape>
-auto dot(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
+T dot(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
   return reduce(lhs * rhs, [](T a, T b) { return a + b; });
 }
 
 template <Arithmetic T, size_t Shape>
-auto norm(const Tensor<T, Shape> &vec, int ord) {
-  return pow(reduce(pow(abs(vec), ord), [](T a, T b) { return a + b; }),
-             1.0 / ord);
-}
-
-// TODO(elijahkin) Eventually we should update `reduce` to ensure these exit
-// early
-template <size_t Shape> auto any(const Tensor<bool, Shape> &vec) {
-  return reduce(vec, [](bool a, bool b) { return a || b; });
-}
-
-template <size_t Shape> auto all(const Tensor<bool, Shape> &vec) {
-  return reduce(vec, [](bool a, bool b) { return a && b; });
+double norm(const Tensor<T, Shape> &vec, int ord) {
+  return std::pow(reduce(pow(abs(vec), ord), [](T a, T b) { return a + b; }),
+                  1.0 / ord);
 }
 
 } // namespace spla
