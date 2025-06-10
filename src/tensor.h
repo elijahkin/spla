@@ -1,5 +1,8 @@
 #include <cmath>
+#include <cstddef>
 #include <format>
+#include <ostream>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace spla {
@@ -22,29 +25,26 @@ concept Arithmetic = requires(T a, T b) {
 // entry is implicitly `default_value_`.
 template <Arithmetic T, size_t Shape> class Tensor {
 public:
+  // This is needed in order for the conversion constructor.
+  template <Arithmetic OtherT, size_t OtherShape> friend class Tensor;
+
+  ///////////////////////
+  // Factory Functions //
+  ///////////////////////
+
+  static auto full(T default_value) { return Tensor<T, Shape>(default_value); }
+
+  static auto zeros() { return full(0); }
+
+  static auto ones() { return full(1); }
+
   //////////////////
   // Constructors //
   //////////////////
 
-  Tensor<T, Shape>(T default_value) : default_value_(default_value) {}
+  Tensor(T default_value) : default_value_(default_value) {}
 
-  static Tensor<T, Shape> full(T default_value) {
-    return Tensor<T, Shape>(default_value);
-  }
-
-  static Tensor<T, Shape> zeros() { return full(0); }
-
-  static Tensor<T, Shape> ones() { return full(1); }
-
-  /////////////////////
-  // Type Conversion //
-  /////////////////////
-
-  // This is needed in order for the conversion constructor to access the
-  // private fields of Tensor<U>.
-  template <Arithmetic U, size_t UShape> friend class Tensor;
-
-  // TODO(elijahkin) This can likely be done with `apply_unary`
+  // TODO(elijahkin) Could this be done with `apply_unary`?
   template <Arithmetic U>
   Tensor(const Tensor<U, Shape> &other)
       : default_value_(static_cast<T>(other.default_value_)) {
@@ -101,32 +101,32 @@ public:
   /////////////////////////
 
   auto &operator+=(const Tensor<T, Shape> &rhs) {
-    return this->apply_binary_inplace(rhs, [](T &a, const T &b) { a += b; });
+    return this->apply_binary_inplace([](T &a, const T &b) { a += b; }, rhs);
   }
 
   auto &operator-=(const Tensor<T, Shape> &rhs) {
-    return this->apply_binary_inplace(rhs, [](T &a, const T &b) { a -= b; });
+    return this->apply_binary_inplace([](T &a, const T &b) { a -= b; }, rhs);
   }
 
   auto &operator*=(const Tensor<T, Shape> &rhs) {
-    return this->apply_binary_inplace(rhs, [](T &a, const T &b) { a *= b; });
+    return this->apply_binary_inplace([](T &a, const T &b) { a *= b; }, rhs);
   }
 
-  ////////////////////////////
-  // Nonmodifying Operators //
-  ////////////////////////////
+  /////////////////////////////
+  // Non-modifying Operators //
+  /////////////////////////////
 
   friend auto exp(const Tensor<T, Shape> &vec) {
-    return apply_unary(vec, [](T a) { return exp(a); });
+    return apply_unary([](T a) { return exp(a); }, vec);
   }
 
   friend Tensor<T, Shape> abs(const Tensor<T, Shape> &vec) {
-    return apply_unary(vec, [](T a) { return abs(a); });
+    return apply_unary([](T a) { return abs(a); }, vec);
   }
 
   friend Tensor<T, Shape> pow(const Tensor<T, Shape> &lhs,
                               const Tensor<T, Shape> &rhs) {
-    return apply_binary(lhs, rhs, [](T a, T b) { return pow(a, b); });
+    return apply_binary([](T a, T b) { return pow(a, b); }, lhs, rhs);
   }
 
   ///////////////////
@@ -148,6 +148,7 @@ private:
   // whether supplying addition as a default operation makes sense.
   // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
   // instead of `T`; this will make generalization much easier.
+  // TODO(elijahkin) Once working, restore `-Werror` as a compiler flag
   friend T reduce(const Tensor<T, Shape> &vec, T (*op)(T, T)) {
     T result = vec.default_value_ * (Shape - vec.data_.size());
     for (const auto &[_, val] : vec.data_) {
@@ -162,8 +163,8 @@ private:
 
   // TODO(elijahkin) Try to somehow marry this function with those below.
   template <typename BinaryOp>
-  Tensor<T, Shape> &apply_binary_inplace(const Tensor<T, Shape> &rhs,
-                                         BinaryOp op) {
+  Tensor<T, Shape> &apply_binary_inplace(BinaryOp op,
+                                         const Tensor<T, Shape> &rhs) {
     for (auto &[key, lhs_val] : data_) {
       if (auto it = rhs.data_.find(key); it == rhs.data_.end()) {
         op(lhs_val, rhs.default_value_);
@@ -183,23 +184,22 @@ private:
   // argument order, we can merge these functions into a single variadic
   // `apply_elementwise` function.
   template <typename UnaryOp>
-  friend auto apply_unary(const Tensor<T, Shape> &vec, UnaryOp op)
+  friend auto apply_unary(UnaryOp op, const Tensor<T, Shape> &vec)
       -> Tensor<decltype(op(std::declval<T>())), Shape> {
     using U = decltype(op(std::declval<T>()));
-    Tensor<U, Shape> result = zeros();
+    Tensor<U, Shape> result = full(op(vec.default_value_));
     for (const auto &[key, val] : vec.data_) {
       result.data_[key] = op(val);
     }
-    result.default_value_ = op(vec.default_value_);
     return result;
   }
 
   template <typename BinaryOp>
-  friend auto apply_binary(const Tensor<T, Shape> &lhs,
-                           const Tensor<T, Shape> &rhs, BinaryOp op)
+  friend auto apply_binary(BinaryOp op, const Tensor<T, Shape> &lhs,
+                           const Tensor<T, Shape> &rhs)
       -> Tensor<decltype(op(std::declval<T>(), std::declval<T>())), Shape> {
     using U = decltype(op(std::declval<T>(), std::declval<T>()));
-    Tensor<U, Shape> result = zeros();
+    Tensor<U, Shape> result = full(op(lhs.default_value_, rhs.default_value_));
     for (const auto &[key, lhs_val] : lhs.data_) {
       if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
         // The key is in both lhs and rhs
@@ -215,38 +215,37 @@ private:
         result.data_[key] = op(lhs.default_value_, rhs_val);
       }
     }
-    result.default_value_ = op(lhs.default_value_, rhs.default_value_);
     return result;
   }
 };
 
-////////////////////////////
-// Nonmodifying Operators //
-////////////////////////////
+/////////////////////////////
+// Non-modifying Operators //
+/////////////////////////////
 
 template <Arithmetic T, size_t Shape>
 auto operator+(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
-  return apply_binary(lhs, rhs, [](T a, T b) { return a + b; });
+  return apply_binary([](T a, T b) { return a + b; }, lhs, rhs);
 }
 
 template <Arithmetic T, size_t Shape>
 auto operator-(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
-  return apply_binary(lhs, rhs, [](T a, T b) { return a - b; });
+  return apply_binary([](T a, T b) { return a - b; }, lhs, rhs);
 }
 
 template <Arithmetic T, size_t Shape>
 auto operator*(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
-  return apply_binary(lhs, rhs, [](T a, T b) { return a * b; });
+  return apply_binary([](T a, T b) { return a * b; }, lhs, rhs);
 }
 
 template <Arithmetic T, size_t Shape>
 auto operator==(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
-  return apply_binary(lhs, rhs, [](T a, T b) { return a == b; });
+  return apply_binary([](T a, T b) { return a == b; }, lhs, rhs);
 }
 
 template <Arithmetic T, size_t Shape>
 auto operator<(const Tensor<T, Shape> &lhs, const Tensor<T, Shape> &rhs) {
-  return apply_binary(lhs, rhs, [](T a, T b) { return a < b; });
+  return apply_binary([](T a, T b) { return a < b; }, lhs, rhs);
 }
 
 // TODO(elijahkin) We can easily add the other comparators if needed.

@@ -1,6 +1,9 @@
 #include "log.h"
 
+#include <chrono>
 #include <iostream>
+#include <string>
+#include <utility>
 #include <vector>
 
 // This file is a simple testing framework for C++, taking heavy inspiration
@@ -51,24 +54,30 @@
 class TestSuite {
 public:
   static void Register(const std::string &name, void (*test_func)()) {
-    tests.push_back({name, test_func});
+    tests_.push_back({name, test_func});
   }
 
   static void RunAll() {
-    for (const auto &[name, ptr] : tests) {
+    for (const auto &[name, ptr] : tests_) {
       bool passed = true;
+      auto begin = std::chrono::steady_clock::now();
       try {
         ptr();
       } catch (const std::exception &e) {
         passed = false;
       }
-      std::cout << std::format("{}{}{}{}: {}", kBoldText,
-                               (passed ? kGreenText : kRedText),
-                               (passed ? "PASSED" : "FAILED"), kResetText, name)
+      auto end = std::chrono::steady_clock::now();
+      std::cout << std::format(
+                       "{:<20.20} {}{}{}{} in {}µs", name, kBoldText,
+                       (passed ? kGreenText : kRedText),
+                       (passed ? "PASSED" : "FAILED"), kResetText,
+                       std::chrono::duration_cast<std::chrono::microseconds>(
+                           end - begin)
+                           .count())
                 << std::endl;
     }
   }
 
 private:
-  static inline std::vector<std::pair<std::string, void (*)()>> tests;
+  static inline std::vector<std::pair<std::string, void (*)()>> tests_;
 };
