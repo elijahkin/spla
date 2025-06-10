@@ -93,7 +93,7 @@ TEST(VectorExp) {
   auto v = spla::Tensor<double, 2>::zeros();
   v[1] = 1;
 
-  auto exp_v = exp(v);
+  auto exp_v = spla::exp(v);
   EXPECT_NEAR(exp_v[0], 1, 1e-6);
   EXPECT_NEAR(exp_v[1], std::numbers::e_v<double>, 1e-6);
 
@@ -175,6 +175,15 @@ TEST(VectorSubscript) {
   EXPECT_EQ(dot(v, w), 21);
 }
 
+// TEST(MatrixDot) {
+//   const auto A = spla::Tensor<double, 2, 3>::ones();
+//   const auto B = spla::Tensor<double, 3, 4>::full(2);
+//   auto C = dot(A, B);
+
+//   const auto eight = spla::Tensor<double, 2, 4>::full(6);
+//   EXPECT_TRUE(spla::all(C == eight));
+// }
+
 TEST(MatrixReduce) {
   auto A = spla::Tensor<int, 5, 5>::ones();
   const int sum = reduce(A, [](int a, int b) { return a + b; });
@@ -185,6 +194,7 @@ TEST(MatrixSubscript) {
   auto A = spla::Tensor<float, 2, 2>::zeros();
   A[0, 0] = 1;
   A[1, 1] = 1;
+  EXPECT_EQ(A.sparsity(), 2);
 
   auto B = spla::Tensor<float, 2, 2>::ones();
   B += A;
@@ -192,6 +202,21 @@ TEST(MatrixSubscript) {
   EXPECT_EQ(B[0, 1], 1);
   EXPECT_EQ(B[1, 0], 1);
   EXPECT_EQ(B[1, 1], 2);
+  EXPECT_EQ(B.sparsity(), 2);
+}
+
+TEST(MatrixSubscriptFail) {
+  auto one = spla::Tensor<int, 3, 3>::ones();
+  EXPECT_NE(one[-1, -1], 1);
+  EXPECT_NE(one[5, 7], 1);
+  EXPECT_NE(one[1, 9], 1);
+}
+
+TEST(ScalarAdd) {
+  const auto two = spla::Tensor<float>::full(2);
+  const auto three = spla::Tensor<float>::full(3);
+  auto add = two + three;
+  // EXPECT_EQ(spla::all(add == 5.0f));
 }
 
 int main() {

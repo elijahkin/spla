@@ -25,6 +25,8 @@ concept Arithmetic = requires(T a, T b) {
 // `default_value_`.
 template <Arithmetic T, size_t... shape> class Tensor {
 public:
+  // TODO(elijahkin) Add a concept that enforces each entry in Index to be
+  // smaller than the corresponding TODO
   typedef std::array<size_t, sizeof...(shape)> Index;
 
   // This is required by the conversion constructor.
@@ -42,6 +44,8 @@ public:
   static auto zeros() { return full(0); }
 
   static auto ones() { return full(1); }
+
+  // TODO(elijahkin) Add an `eye` factory function.
 
   //////////////////
   // Constructors //
