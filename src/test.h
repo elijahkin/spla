@@ -28,7 +28,7 @@ bool passed;
 class TestSuite {
  public:
   static void Register(const std::string& name, void (*func)()) {
-    tests_.push_back({name, func});
+    tests_.emplace_back(name, func);
   }
 
   static void RunAll() {
@@ -38,13 +38,11 @@ class TestSuite {
       func();
       auto end = std::chrono::steady_clock::now();
       std::cout << std::format(
-                       "{:<20.20} {}{}{}{} in {}µs", name, kBoldText,
-                       (passed ? kGreenText : kRedText),
-                       (passed ? "PASSED" : "FAILED"), kResetText,
-                       std::chrono::duration_cast<std::chrono::microseconds>(
-                           end - begin)
-                           .count())
-                << std::endl;
+          "{:<20.20} {}{}{}{} in {}µs\n", name, kBoldText,
+          (passed ? kGreenText : kRedText), (passed ? "PASSED" : "FAILED"),
+          kResetText,
+          std::chrono::duration_cast<std::chrono::microseconds>(end - begin)
+              .count());
     }
   }
 

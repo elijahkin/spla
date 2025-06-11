@@ -26,7 +26,7 @@ concept Arithmetic = requires(T a, T b) {
 template <Arithmetic T, int64_t... shape>
 class Tensor {
  public:
-  typedef std::array<int64_t, sizeof...(shape)> Index;
+  using Index = std::array<int64_t, sizeof...(shape)>;
 
   // This is required by the conversion constructor.
   template <Arithmetic OtherT, int64_t... other_shape>
