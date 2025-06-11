@@ -54,8 +54,6 @@ inline void EXPECT_TRUE(bool condition) { passed &= condition; }
 
 inline void EXPECT_FALSE(bool condition) { passed &= !condition; }
 
-// TODO(elijahkin) Can we introduce a Comparable concept to clean these up?
-
 template <typename T1, typename T2> inline void EXPECT_EQ(T1 val1, T2 val2) {
   EXPECT_TRUE(val1 == val2);
 }

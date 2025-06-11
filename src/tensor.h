@@ -22,8 +22,7 @@ concept Arithmetic = requires(T a, T b) {
 };
 
 // Implements a sparse tensor represented internally by a map `data_`. If an
-// index is not present as a key in the map, that entry is implicitly
-// `default_value_`.
+// index is not present as a key, its entry is implicitly `default_value_`.
 template <Arithmetic T, int64_t... shape> class Tensor {
 public:
   typedef std::array<int64_t, sizeof...(shape)> Index;
@@ -35,7 +34,6 @@ public:
   // Factory Functions //
   ///////////////////////
 
-  // TODO(elijakin) Can we make these free?
   static auto full(T default_value) {
     return Tensor<T, shape...>(default_value);
   }
@@ -44,15 +42,12 @@ public:
 
   static auto ones() { return full(1); }
 
-  // TODO(elijahkin) Add an `eye` factory function.
-
   //////////////////
   // Constructors //
   //////////////////
 
   Tensor(T default_value) : default_value_(default_value) {}
 
-  // TODO(elijahkin) Could this be done with `apply_unary`?
   template <Arithmetic U>
   Tensor(const Tensor<U, shape...> &other)
       : default_value_(static_cast<T>(other.default_value_)) {
@@ -74,8 +69,6 @@ public:
         : vec_(vec), idx_(idx) {}
 
     // Implements the behavior for `vec[i] = val`.
-    // TODO(elijahkin) Is this the right return type for this?
-    // TODO(elijahkin) Should we prevent writing default values?
     SubscriptProxy &operator=(const T &val) {
       vec_.data_[idx_] = val;
       return *this;
@@ -96,11 +89,8 @@ public:
     Index idx_;
   };
 
-  // TODO(elijahkin) Make sure we handle negative indices correctly.
-  // TODO(elijahkin) Add a concept that enforces the entries in Index are
-  // smaller than the corresponding entries in shape.
   template <typename... Args> SubscriptProxy operator[](Args... idx) {
-    return SubscriptProxy(*this, {(static_cast<int64_t>(idx))...});
+    return SubscriptProxy(*this, {static_cast<int64_t>(idx)...});
   }
 
   ///////////////////
@@ -116,11 +106,6 @@ public:
 
   int64_t sparsity() const { return data_.size(); }
 
-  // TODO(elijahkin) Consider whether supplying addition as a default operation
-  // would make sense.
-  // TODO(elijahkin) Reduce should probably return something like `Tensor<T, 1>`
-  // instead of `T`; this will make generalization much easier.
-  // TODO(elijahkin) Once working, restore `-Werror` as a compiler flag.
   friend auto reduce(const Tensor<T, shape...> &vec,
                      std::function<T(T, T)> op) {
     auto result = vec.default_value_ * (vec.elements_in() - vec.sparsity());
@@ -146,9 +131,6 @@ public:
     return this->apply_binary_inplace([](T &a, const T &b) { a *= b; }, rhs);
   }
 
-  // TODO(elijahkin) If we introduce an `Operation` class and swap around the
-  // argument order, we can merge these functions into a single variadic
-  // `apply_elementwise` function.
   template <typename UnaryOp>
   friend auto apply_unary(UnaryOp op, const Tensor<T, shape...> &vec)
       -> Tensor<decltype(op(std::declval<T>())), shape...> {
@@ -159,8 +141,6 @@ public:
     return result;
   }
 
-  // TODO(elijahkin) This should be modified to call `apply_binary_inplace` and
-  // subsequently be made private.
   template <typename BinaryOp>
   friend auto apply_binary(BinaryOp op, const Tensor<T, shape...> &lhs,
                            const Tensor<T, shape...> &rhs)
@@ -190,7 +170,6 @@ public:
   }
 
 private:
-  // TODO(elijahkin) Can we debug why `std::unordered_map` doesn't compile?
   std::map<Index, T> data_;
   T default_value_;
 
@@ -248,8 +227,6 @@ auto operator<(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a < b; }, lhs, rhs);
 }
 
-// TODO(elijahkin) We can easily add the other comparators if needed.
-
 template <Arithmetic T, int64_t... shape>
 auto operator==(const Tensor<T, shape...> &lhs,
                 const Tensor<T, shape...> &rhs) {
@@ -260,8 +237,6 @@ auto operator==(const Tensor<T, shape...> &lhs,
 // Reduce Operations //
 ///////////////////////
 
-// TODO(elijahkin) Eventually we should update `reduce` to ensure `all` and
-// `any` exit early.
 template <int64_t... shape> bool all(const Tensor<bool, shape...> &vec) {
   return reduce(vec, [](bool a, bool b) { return a && b; });
 }
