@@ -110,7 +110,7 @@ TEST(VectorNorm) {
 
   auto v = one;
   EXPECT_NEAR(v[0], 1, 1e-6);
-  EXPECT_NEAR(norm(v, 2), std::sqrt(3), 1e-6);
+  EXPECT_NEAR(norm(v, 2), std::numbers::sqrt3, 1e-6);
 
   auto w = two;
   EXPECT_NEAR(w[0], 2, 1e-6);
