@@ -3,10 +3,8 @@ Checks: >
   bugprone-*,
   cert-*,
   clang-analyzer-*,
-  cppcoreguidelines-c*,
-  cppcoreguidelines-f*,
-  cppcoreguidelines-pro-*,
-  cppcoreguidelines-s*,
+  cppcoreguidelines-*,
+  hicpp-*,
   misc-*,
   modernize-*,
   openmp-*,
@@ -14,13 +12,14 @@ Checks: >
   portability-*,
   readability-*,
   -cert-err58-cpp,
+  -cppcoreguidelines-avoid-*,
   -misc-definitions-in-headers,
   -misc-use-internal-linkage,
   -misc-use-anonymous-namespace,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard,
   -readability-identifier-length,
-  -readability-magic-numbers,
+  -readability-magic-numbers
 
 # WarningsAsErrors: "*"
 

@@ -38,9 +38,8 @@ class TestSuite {
       func();
       auto end = std::chrono::steady_clock::now();
       std::cout << std::format(
-          "{:<20.20} {}{}{}{} in {}µs\n", name, kBoldText,
-          (passed ? kGreenText : kRedText), (passed ? "PASSED" : "FAILED"),
-          kResetText,
+          "{:<20.20} {}{}{} in {}µs\n", name, kBoldText,
+          passed ? (kGreenText + "PASSED") : (kRedText + "FAILED"), kResetText,
           std::chrono::duration_cast<std::chrono::microseconds>(end - begin)
               .count());
     }
