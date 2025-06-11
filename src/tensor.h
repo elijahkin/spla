@@ -1,3 +1,4 @@
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <format>
@@ -23,14 +24,12 @@ concept Arithmetic = requires(T a, T b) {
 // Implements a sparse tensor represented internally by a map `data_`. If an
 // index is not present as a key in the map, that entry is implicitly
 // `default_value_`.
-template <Arithmetic T, size_t... shape> class Tensor {
+template <Arithmetic T, int64_t... shape> class Tensor {
 public:
-  // TODO(elijahkin) Add a concept that enforces each entry in Index to be
-  // smaller than the corresponding TODO
-  typedef std::array<size_t, sizeof...(shape)> Index;
+  typedef std::array<int64_t, sizeof...(shape)> Index;
 
   // This is required by the conversion constructor.
-  template <Arithmetic OtherT, size_t... other_shape> friend class Tensor;
+  template <Arithmetic OtherT, int64_t... other_shape> friend class Tensor;
 
   ///////////////////////
   // Factory Functions //
@@ -71,36 +70,37 @@ public:
   // accidently written to `data_`.
   class SubscriptProxy {
   public:
-    SubscriptProxy(Tensor<T, shape...> *vec, Index idx)
+    SubscriptProxy(Tensor<T, shape...> &vec, Index idx)
         : vec_(vec), idx_(idx) {}
 
     // Implements the behavior for `vec[i] = val`.
     // TODO(elijahkin) Is this the right return type for this?
     // TODO(elijahkin) Should we prevent writing default values?
     SubscriptProxy &operator=(const T &val) {
-      vec_->data_[idx_] = val;
+      vec_.data_[idx_] = val;
       return *this;
     }
 
     // Casts a `SubscriptProxy` object to the entry type `T`. It searches for
-    // the whether `index_` is a key in `vec->data_`. If so, it returns its
-    // associated value, and `vec->default_value_` otherwise.
+    // the whether `idx_` is a key in `vec_.data_`. If so, it returns its
+    // associated value, and `vec_.default_value_` otherwise.
     operator T() const {
-      if (auto it = vec_->data_.find(idx_); it != vec_->data_.end()) {
+      if (auto it = vec_.data_.find(idx_); it != vec_.data_.end()) {
         return it->second;
       }
-      return vec_->default_value_;
+      return vec_.default_value_;
     }
 
   private:
-    Tensor<T, shape...> *vec_;
+    Tensor<T, shape...> &vec_;
     Index idx_;
   };
 
-  // TODO(elijahkin) Should we allow negative indices? If so, we can replace
-  // size_t with ssize_t
+  // TODO(elijahkin) Make sure we handle negative indices correctly.
+  // TODO(elijahkin) Add a concept that enforces the entries in Index are
+  // smaller than the corresponding entries in shape.
   template <typename... Args> SubscriptProxy operator[](Args... idx) {
-    return SubscriptProxy(this, {(static_cast<std::size_t>(idx))...});
+    return SubscriptProxy(*this, {(static_cast<int64_t>(idx))...});
   }
 
   ///////////////////
@@ -112,9 +112,9 @@ public:
     return os << std::format("{}", vec.data_);
   }
 
-  size_t elements_in() const { return (1 * ... * shape); }
+  int64_t elements_in() const { return (1 * ... * shape); }
 
-  size_t sparsity() const { return data_.size(); }
+  int64_t sparsity() const { return data_.size(); }
 
   // TODO(elijahkin) Consider whether supplying addition as a default operation
   // would make sense.
@@ -218,39 +218,39 @@ private:
 // Elementwise Operations //
 ////////////////////////////
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 auto abs(const Tensor<T, shape...> &vec) {
   return apply_unary([](T a) { return std::abs(a); }, vec);
 }
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 auto exp(const Tensor<T, shape...> &vec) {
   return apply_unary([](T a) { return std::exp(a); }, vec);
 }
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 auto operator+(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a + b; }, lhs, rhs);
 }
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 auto operator-(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a - b; }, lhs, rhs);
 }
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 auto operator*(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a * b; }, lhs, rhs);
 }
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 auto operator<(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a < b; }, lhs, rhs);
 }
 
 // TODO(elijahkin) We can easily add the other comparators if needed.
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 auto operator==(const Tensor<T, shape...> &lhs,
                 const Tensor<T, shape...> &rhs) {
   return apply_binary([](T a, T b) { return a == b; }, lhs, rhs);
@@ -262,20 +262,20 @@ auto operator==(const Tensor<T, shape...> &lhs,
 
 // TODO(elijahkin) Eventually we should update `reduce` to ensure `all` and
 // `any` exit early.
-template <size_t... shape> bool all(const Tensor<bool, shape...> &vec) {
+template <int64_t... shape> bool all(const Tensor<bool, shape...> &vec) {
   return reduce(vec, [](bool a, bool b) { return a && b; });
 }
 
-template <size_t... shape> bool any(const Tensor<bool, shape...> &vec) {
+template <int64_t... shape> bool any(const Tensor<bool, shape...> &vec) {
   return reduce(vec, [](bool a, bool b) { return a || b; });
 }
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 T dot(const Tensor<T, shape...> &lhs, const Tensor<T, shape...> &rhs) {
   return reduce(lhs * rhs, [](T a, T b) { return a + b; });
 }
 
-template <Arithmetic T, size_t... shape>
+template <Arithmetic T, int64_t... shape>
 double norm(const Tensor<T, shape...> &vec, int ord) {
   return std::pow(reduce(pow(abs(vec), ord), [](T a, T b) { return a + b; }),
                   1.0 / ord);

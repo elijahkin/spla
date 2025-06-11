@@ -1,5 +1,5 @@
 CC = g++-15
-CFLAGS = -std=c++23 -O2 -Wall -Wextra -Wpedantic
+CFLAGS = -std=c++23 -O2 -Wall -Wextra -Wpedantic -Werror -fno-exceptions
 
 all: tensor_test
 

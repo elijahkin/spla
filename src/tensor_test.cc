@@ -1,7 +1,9 @@
 #include "tensor.h"
-#include "test.h"
 
+#include <cmath>
 #include <numbers>
+
+#include "test.h"
 
 TEST(VectorAbs) {
   auto v = spla::Tensor<int, 3>::zeros();
@@ -108,15 +110,15 @@ TEST(VectorNorm) {
 
   auto v = one;
   EXPECT_NEAR(v[0], 1, 1e-6);
-  EXPECT_NEAR(norm(v, 2), sqrt(3), 1e-6);
+  EXPECT_NEAR(norm(v, 2), std::sqrt(3), 1e-6);
 
   auto w = two;
   EXPECT_NEAR(w[0], 2, 1e-6);
-  EXPECT_NEAR(norm(w, 2), sqrt(12), 1e-6);
+  EXPECT_NEAR(norm(w, 2), std::sqrt(12), 1e-6);
 
   v = v + w;
   EXPECT_NEAR(v[0], 3, 1e-6);
-  EXPECT_NEAR(norm(v, 2), sqrt(27), 1e-6);
+  EXPECT_NEAR(norm(v, 2), std::sqrt(27), 1e-6);
   EXPECT_TRUE(spla::all(v == three));
 }
 
@@ -171,18 +173,18 @@ TEST(VectorSubscript) {
   EXPECT_EQ(v.sparsity(), 3);
 
   EXPECT_NEAR(norm(v, 1), 25, 1e-6);
-  EXPECT_NEAR(norm(v, 2), sqrt(297), 1e-6);
+  EXPECT_NEAR(norm(v, 2), std::sqrt(297), 1e-6);
   EXPECT_EQ(dot(v, w), 21);
 }
 
-// TEST(MatrixDot) {
-//   const auto A = spla::Tensor<double, 2, 3>::ones();
-//   const auto B = spla::Tensor<double, 3, 4>::full(2);
-//   auto C = dot(A, B);
+TEST(MatrixDot) {
+  const auto one = spla::Tensor<double, 2, 3>::ones();
+  const auto two = spla::Tensor<double, 3, 4>::full(2);
+  const auto six = spla::Tensor<double, 2, 4>::full(6);
 
-//   const auto eight = spla::Tensor<double, 2, 4>::full(6);
-//   EXPECT_TRUE(spla::all(C == eight));
-// }
+  // auto A = dot(one, two);
+  // EXPECT_TRUE(spla::all(A == six));
+}
 
 TEST(MatrixReduce) {
   auto A = spla::Tensor<int, 5, 5>::ones();
