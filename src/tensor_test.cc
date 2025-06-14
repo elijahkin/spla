@@ -11,7 +11,7 @@ TEST(VectorAbs) {
   a[1] = 4;
   a[2] = -2;
 
-  auto b = abs(a);
+  auto b = spla::abs(a);
   EXPECT_EQ(b[0], 3);
   EXPECT_EQ(b[1], 4);
   EXPECT_EQ(b[2], 2);
@@ -75,7 +75,7 @@ TEST(VectorConversion) {
 
 TEST(VectorDot) {
   const auto one = spla::Tensor<int, 5>::ones();
-  EXPECT_EQ(dot(one, one), 5);
+  EXPECT_EQ(spla::dot(one, one), 5);
 }
 
 TEST(VectorEq) {
@@ -110,15 +110,15 @@ TEST(VectorNorm) {
 
   auto a = one;
   EXPECT_NEAR(a[0], 1, 1e-6);
-  EXPECT_NEAR(norm(a, 2), std::numbers::sqrt3, 1e-6);
+  EXPECT_NEAR(spla::norm(a, 2), std::numbers::sqrt3, 1e-6);
 
   auto b = two;
   EXPECT_NEAR(b[0], 2, 1e-6);
-  EXPECT_NEAR(norm(b, 2), std::sqrt(12), 1e-6);
+  EXPECT_NEAR(spla::norm(b, 2), std::sqrt(12), 1e-6);
 
   a = a + b;
   EXPECT_NEAR(a[0], 3, 1e-6);
-  EXPECT_NEAR(norm(a, 2), std::sqrt(27), 1e-6);
+  EXPECT_NEAR(spla::norm(a, 2), std::sqrt(27), 1e-6);
   EXPECT_TRUE(spla::all(a == three));
 }
 
@@ -128,7 +128,7 @@ TEST(VectorPow) {
   a[1] = 2;
   a[2] = 3;
 
-  auto b = pow(a, a);
+  auto b = /* spla:: */ pow(a, a);
   EXPECT_EQ(b[0], 1);
   EXPECT_EQ(b[1], 4);
   EXPECT_EQ(b[2], 27);
@@ -144,12 +144,12 @@ TEST(VectorReduce) {
   auto a = spla::Tensor<int, 5>::ones();
   a[2] = 7;
   a[3] = -1;
-  EXPECT_EQ(reduce(a, [](int a, int b) { return a + b; }), 9);
+  EXPECT_EQ(/* spla:: */ reduce(a, [](int a, int b) { return a + b; }), 9);
 }
 
 TEST(VectorSubscript) {
   auto a = spla::Tensor<int, 10>::zeros();
-  EXPECT_NEAR(norm(a, 2), 0, 1e-6);
+  EXPECT_NEAR(spla::norm(a, 2), 0, 1e-6);
   EXPECT_EQ(a.sparsity(), 0);
 
   a[1] = -7;
@@ -172,9 +172,9 @@ TEST(VectorSubscript) {
   EXPECT_EQ(a[5], 1);
   EXPECT_EQ(a.sparsity(), 3);
 
-  EXPECT_NEAR(norm(a, 1), 25, 1e-6);
-  EXPECT_NEAR(norm(a, 2), std::sqrt(297), 1e-6);
-  EXPECT_EQ(dot(a, b), 21);
+  EXPECT_NEAR(spla::norm(a, 1), 25, 1e-6);
+  EXPECT_NEAR(spla::norm(a, 2), std::sqrt(297), 1e-6);
+  EXPECT_EQ(spla::dot(a, b), 21);
 }
 
 TEST(MatrixDot) {
@@ -182,13 +182,13 @@ TEST(MatrixDot) {
   const auto two = spla::Tensor<double, 3, 4>::full(2);
   const auto six = spla::Tensor<double, 2, 4>::full(6);
 
-  // auto a = dot(one, two);
+  // auto a = spla::dot(one, two);
   // EXPECT_TRUE(spla::all(a == six));
 }
 
 TEST(MatrixReduce) {
   auto a = spla::Tensor<int, 5, 5>::ones();
-  const int b = reduce(a, [](int a, int b) { return a + b; });
+  const int b = /* spla:: */ reduce(a, [](int a, int b) { return a + b; });
   EXPECT_EQ(b, 25);
 }
 

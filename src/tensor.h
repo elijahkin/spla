@@ -70,7 +70,7 @@ class Tensor {
     SubscriptProxy(Tensor<T, shape...>& vec, Index idx)
         : vec_(vec), idx_(idx) {}
 
-    // Implements the behavior for `vec[i] = val`.
+    // Handles tensor subscript assignment.
     SubscriptProxy& operator=(const T& val) {
       vec_.data_[idx_] = val;
       return *this;

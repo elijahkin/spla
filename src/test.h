@@ -11,13 +11,11 @@
 // from Google Test. We first define the `TestSuite` class itself, and then
 // several functions for making assertions within tests.
 
-#define TEST(name)                      \
-  void name();                          \
-  static struct Register_##name {       \
-    Register_##name() {                 \
-      TestSuite::Register(#name, name); \
-    }                                   \
-  } register_##name;                    \
+#define TEST(name)                                          \
+  void name();                                              \
+  static struct Register_##name {                           \
+    Register_##name() { TestSuite::Register(#name, name); } \
+  } register_##name;                                        \
   void name()
 
 bool passed;
@@ -49,13 +47,9 @@ class TestSuite {
   static inline std::vector<std::pair<std::string, void (*)()>> tests_;
 };
 
-inline void EXPECT_TRUE(bool condition) {
-  passed &= condition;
-}
+inline void EXPECT_TRUE(bool condition) { passed &= condition; }
 
-inline void EXPECT_FALSE(bool condition) {
-  passed &= !condition;
-}
+inline void EXPECT_FALSE(bool condition) { passed &= !condition; }
 
 template <typename T1, typename T2>
 inline void EXPECT_EQ(T1 val1, T2 val2) {
@@ -69,5 +63,5 @@ inline void EXPECT_NE(T1 val1, T2 val2) {
 
 template <typename T1, typename T2, typename T3>
 inline void EXPECT_NEAR(T1 val1, T2 val2, T3 abs_err) {
-  EXPECT_TRUE(abs(val1 - val2) < abs_err);
+  EXPECT_TRUE(std::abs(val1 - val2) < abs_err);
 }
