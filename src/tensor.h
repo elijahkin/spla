@@ -8,9 +8,9 @@
 
 namespace spla {
 
-// Defines the requirements to be the template type for a `Tensor`. In
-// particular, it must support typical arithmetic operations such as addition,
-// multiplication, and absolute value.
+// Defines the requirements to be a valid entry type of a `Tensor`. In
+// particular, the type must support typical arithmetic operations such as
+// addition, multiplication, absolute value, etc.
 template <typename T>
 concept Arithmetic = requires(T a, T b) {
   a += b;
@@ -125,6 +125,22 @@ class Tensor {
     return SubscriptProxy(*this, {static_cast<int64_t>(idx)...});
   }
 
+  //////////////////////////////////////
+  // Modifying Elementwise Operations //
+  //////////////////////////////////////
+
+  auto& operator+=(const Tensor<T, shape...>& rhs) {
+    return this->apply_binary_inplace([](T& a, const T& b) { a += b; }, rhs);
+  }
+
+  auto& operator-=(const Tensor<T, shape...>& rhs) {
+    return this->apply_binary_inplace([](T& a, const T& b) { a -= b; }, rhs);
+  }
+
+  auto& operator*=(const Tensor<T, shape...>& rhs) {
+    return this->apply_binary_inplace([](T& a, const T& b) { a *= b; }, rhs);
+  }
+
   ///////////////////
   // Miscellaneous //
   ///////////////////
@@ -146,22 +162,6 @@ class Tensor {
       op(result, val);
     }
     return result;
-  }
-
-  ////////////////////////////
-  // Elementwise Operations //
-  ////////////////////////////
-
-  auto& operator+=(const Tensor<T, shape...>& rhs) {
-    return this->apply_binary_inplace([](T& a, const T& b) { a += b; }, rhs);
-  }
-
-  auto& operator-=(const Tensor<T, shape...>& rhs) {
-    return this->apply_binary_inplace([](T& a, const T& b) { a -= b; }, rhs);
-  }
-
-  auto& operator*=(const Tensor<T, shape...>& rhs) {
-    return this->apply_binary_inplace([](T& a, const T& b) { a *= b; }, rhs);
   }
 
   friend auto pow(const Tensor<T, shape...>& lhs,
@@ -194,9 +194,9 @@ class Tensor {
   }
 };
 
-////////////////////////////
-// Elementwise Operations //
-////////////////////////////
+//////////////////////////////////////////
+// Non-modifying Elementwise Operations //
+//////////////////////////////////////////
 
 template <Arithmetic T, int64_t... shape>
 auto abs(const Tensor<T, shape...>& vec) {
