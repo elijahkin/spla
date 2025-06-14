@@ -140,11 +140,11 @@ TEST(VectorPow) {
   EXPECT_EQ(a[3], 2);
 }
 
-TEST(VectorReduce) {
+TEST(VectorSum) {
   auto a = spla::Tensor<int, 5>::ones();
   a[2] = 7;
   a[3] = -1;
-  EXPECT_EQ(/* spla:: */ reduce(a, [](int a, int b) { return a + b; }), 9);
+  EXPECT_EQ(spla::sum(a), 9);
 }
 
 TEST(VectorSubscript) {
@@ -186,9 +186,9 @@ TEST(MatrixDot) {
   // EXPECT_TRUE(spla::all(a == six));
 }
 
-TEST(MatrixReduce) {
+TEST(MatrixSum) {
   auto a = spla::Tensor<int, 5, 5>::ones();
-  const int b = /* spla:: */ reduce(a, [](int a, int b) { return a + b; });
+  const int b = spla::sum(a);
   EXPECT_EQ(b, 25);
 }
 
@@ -218,7 +218,7 @@ TEST(ScalarAdd) {
   const auto two = spla::Tensor<float>::full(2);
   const auto three = spla::Tensor<float>::full(3);
   // auto a = two + three;
-  // EXPECT_EQ(spla::all(a == 5.0f));
+  // EXPECT_EQ(spla::all(a == 5.0F));
 }
 
 int main() {

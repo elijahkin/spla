@@ -6,11 +6,10 @@ The outstanding work is split broadly into the following three categories.
 These tasks pertain to the implementation and correctness of mathematical operations. The principal goal is to provide whatever operations our use cases require.
 * Diagnose and correct any failing tests.
 * Add `eye` as a factory function.
-* Ensure `operator[]` handles negative and out of bounds indices correctly.
+* Ensure `operator[]` gracefully handles negative and out of bounds indices.
 * Investigate whether the factory functions can easily be made free.
 * Implement any remaining [operator overloads](https://cppreference.com/w/cpp/language/operators.html) and any [element-wise operations](https://cppreference.com/w/cpp/header/cmath.html) from the `<cmath>` header that seem relevant.
-* Refactor `reduce` so that it returns a tensor and require a list of reduction dimensions. This will allow for operations such as computing the row sums and column sums of matrices for example, rather than simply the sum of all entries.
-* Consider whether supplying addition as the default reduction operation would make sense.
+* Refactor `reduce` so that it returns a tensor and requires a list of reduction dimensions. This will allow for much more expressive reductions; for example, computing the row sums and column sums of matrices, rather than simply the sum of all entries.
 ### Code Quality
 These tasks pertain to code elegance, readability, and documentation. The principal goal is to ensure "self-documenting" code. That is, code which is so clearly written that to comment on it would be redundant.
 * Can we avoid redundant code in the constructors and `apply_binary_inplace`? Moreover, can we unify the constructors? Can we use `std::function`?

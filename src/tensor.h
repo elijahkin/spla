@@ -138,11 +138,12 @@ class Tensor {
 
   int64_t sparsity() const { return data_.size(); }
 
-  friend auto reduce(const Tensor<T, shape...>& vec,
-                     std::function<T(T, T)> op) {
-    auto result = vec.default_value_ * (vec.elements_in() - vec.sparsity());
+  friend T reduce(const Tensor<T, shape...>& vec,
+                  std::function<void(T&, const T&)> op) {
+    T result = static_cast<T>(vec.default_value_ *
+                              (vec.elements_in() - vec.sparsity()));
     for (const auto& [_, val] : vec.data_) {
-      result = op(result, val);
+      op(result, val);
     }
     return result;
   }
@@ -239,23 +240,27 @@ auto operator==(const Tensor<T, shape...>& lhs,
 
 template <int64_t... shape>
 bool all(const Tensor<bool, shape...>& vec) {
-  return reduce(vec, [](bool a, bool b) { return a && b; });
+  return reduce(vec, [](bool& a, const bool& b) { return a &= b; });
 }
 
 template <int64_t... shape>
 bool any(const Tensor<bool, shape...>& vec) {
-  return reduce(vec, [](bool a, bool b) { return a || b; });
+  return reduce(vec, [](bool& a, const bool& b) { a |= b; });
+}
+
+template <Arithmetic T, int64_t... shape>
+T sum(const Tensor<T, shape...>& vec) {
+  return reduce(vec, [](T& a, const T& b) { a += b; });
 }
 
 template <Arithmetic T, int64_t... shape>
 T dot(const Tensor<T, shape...>& lhs, const Tensor<T, shape...>& rhs) {
-  return reduce(lhs * rhs, [](T a, T b) { return a + b; });
+  return sum(lhs * rhs);
 }
 
 template <Arithmetic T, int64_t... shape>
 double norm(const Tensor<T, shape...>& vec, int ord) {
-  return std::pow(reduce(pow(abs(vec), ord), [](T a, T b) { return a + b; }),
-                  1.0 / ord);
+  return std::pow(sum(pow(abs(vec), ord)), 1.0 / ord);
 }
 
 }  // namespace spla
