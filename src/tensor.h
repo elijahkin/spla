@@ -50,11 +50,40 @@ class Tensor {
 
   Tensor(T default_value) : default_value_(default_value) {}
 
-  template <Arithmetic U>
-  Tensor(const Tensor<U, shape...>& other)
+  template <Arithmetic OtherT>
+  explicit Tensor(const Tensor<OtherT, shape...>& other)
       : default_value_(static_cast<T>(other.default_value_)) {
     for (const auto& [key, val] : other.data_) {
       data_[key] = static_cast<T>(val);
+    }
+  }
+
+  template <Arithmetic OtherT, typename UnaryOp>
+  Tensor(UnaryOp op, const Tensor<OtherT, shape...>& other)
+      : default_value_(op(other.default_value_)) {
+    for (const auto& [key, val] : other.data_) {
+      data_[key] = op(val);
+    }
+  }
+
+  template <Arithmetic OtherT, typename BinaryOp>
+  Tensor(BinaryOp op, const Tensor<OtherT, shape...>& lhs,
+         const Tensor<OtherT, shape...>& rhs)
+      : default_value_(op(lhs.default_value_, rhs.default_value_)) {
+    for (const auto& [key, lhs_val] : lhs.data_) {
+      if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
+        // The key is in both lhs and rhs
+        data_[key] = op(lhs_val, it->second);
+      } else {
+        // The key is only in lhs
+        data_[key] = op(lhs_val, rhs.default_value_);
+      }
+    }
+    for (const auto& [key, rhs_val] : rhs.data_) {
+      if (auto it = lhs.data_.find(key); it == lhs.data_.end()) {
+        // The key is only in rhs
+        data_[key] = op(lhs.default_value_, rhs_val);
+      }
     }
   }
 
@@ -134,42 +163,10 @@ class Tensor {
     return this->apply_binary_inplace([](T& a, const T& b) { a *= b; }, rhs);
   }
 
-  template <typename UnaryOp>
-  friend auto apply_unary(UnaryOp op, const Tensor<T, shape...>& vec)
-      -> Tensor<decltype(op(std::declval<T>())), shape...> {
-    auto result = full(op(vec.default_value_));
-    for (const auto& [key, val] : vec.data_) {
-      result.data_[key] = op(val);
-    }
-    return result;
-  }
-
-  template <typename BinaryOp>
-  friend auto apply_binary(BinaryOp op, const Tensor<T, shape...>& lhs,
-                           const Tensor<T, shape...>& rhs)
-      -> Tensor<decltype(op(std::declval<T>(), std::declval<T>())), shape...> {
-    auto result = full(op(lhs.default_value_, rhs.default_value_));
-    for (const auto& [key, lhs_val] : lhs.data_) {
-      if (auto it = rhs.data_.find(key); it != rhs.data_.end()) {
-        // The key is in both lhs and rhs
-        result.data_[key] = op(lhs_val, it->second);
-      } else {
-        // The key is only in lhs
-        result.data_[key] = op(lhs_val, rhs.default_value_);
-      }
-    }
-    for (const auto& [key, rhs_val] : rhs.data_) {
-      if (auto it = lhs.data_.find(key); it == lhs.data_.end()) {
-        // The key is only in rhs
-        result.data_[key] = op(lhs.default_value_, rhs_val);
-      }
-    }
-    return result;
-  }
-
-  friend Tensor<T, shape...> pow(const Tensor<T, shape...>& lhs,
-                                 const Tensor<T, shape...>& rhs) {
-    return apply_binary([](T a, T b) { return std::pow(a, b); }, lhs, rhs);
+  friend auto pow(const Tensor<T, shape...>& lhs,
+                  const Tensor<T, shape...>& rhs) {
+    return Tensor<T, shape...>([](T a, T b) { return std::pow(a, b); }, lhs,
+                               rhs);
   }
 
  private:
@@ -202,38 +199,38 @@ class Tensor {
 
 template <Arithmetic T, int64_t... shape>
 auto abs(const Tensor<T, shape...>& vec) {
-  return apply_unary([](T a) { return std::abs(a); }, vec);
+  return Tensor<T, shape...>([](T a) { return std::abs(a); }, vec);
 }
 
 template <Arithmetic T, int64_t... shape>
 auto exp(const Tensor<T, shape...>& vec) {
-  return apply_unary([](T a) { return std::exp(a); }, vec);
+  return Tensor<T, shape...>([](T a) { return std::exp(a); }, vec);
 }
 
 template <Arithmetic T, int64_t... shape>
 auto operator+(const Tensor<T, shape...>& lhs, const Tensor<T, shape...>& rhs) {
-  return apply_binary([](T a, T b) { return a + b; }, lhs, rhs);
+  return Tensor<T, shape...>([](T a, T b) { return a + b; }, lhs, rhs);
 }
 
 template <Arithmetic T, int64_t... shape>
 auto operator-(const Tensor<T, shape...>& lhs, const Tensor<T, shape...>& rhs) {
-  return apply_binary([](T a, T b) { return a - b; }, lhs, rhs);
+  return Tensor<T, shape...>([](T a, T b) { return a - b; }, lhs, rhs);
 }
 
 template <Arithmetic T, int64_t... shape>
 auto operator*(const Tensor<T, shape...>& lhs, const Tensor<T, shape...>& rhs) {
-  return apply_binary([](T a, T b) { return a * b; }, lhs, rhs);
+  return Tensor<T, shape...>([](T a, T b) { return a * b; }, lhs, rhs);
 }
 
 template <Arithmetic T, int64_t... shape>
 auto operator<(const Tensor<T, shape...>& lhs, const Tensor<T, shape...>& rhs) {
-  return apply_binary([](T a, T b) { return a < b; }, lhs, rhs);
+  return Tensor<bool, shape...>([](T a, T b) { return a < b; }, lhs, rhs);
 }
 
 template <Arithmetic T, int64_t... shape>
 auto operator==(const Tensor<T, shape...>& lhs,
                 const Tensor<T, shape...>& rhs) {
-  return apply_binary([](T a, T b) { return a == b; }, lhs, rhs);
+  return Tensor<bool, shape...>([](T a, T b) { return a == b; }, lhs, rhs);
 }
 
 ///////////////////////

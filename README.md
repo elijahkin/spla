@@ -13,8 +13,7 @@ These tasks pertain to the implementation and correctness of mathematical operat
 * Consider whether supplying addition as the default reduction operation would make sense.
 ### Code Quality
 These tasks pertain to code elegance, readability, and documentation. The principal goal is to ensure "self-documenting" code. That is, code which is so clearly written that to comment on it would be redundant.
-* Can we avoid calling `decltype` for `apply_unary` and `apply_binary`?
-* Can `apply_unary`, `apply_binary`, and `apply_binary_inplace` be unified at all?
+* Can we avoid redundant code in the constructors and `apply_binary_inplace`? Moreover, can we unify the constructors? Can we use `std::function`?
 * Ensure thorough documentation of each class and function except those which are self-explanatory.
 * Enforce good C++ practices: `#define` guards, long member functions outside class definitions.
 ### Performance Experiments
