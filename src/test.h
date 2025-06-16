@@ -5,8 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "log.h"
-
 // This file is a simple testing framework for C++, taking heavy inspiration
 // from Google Test. We first define the `TestSuite` class itself, and then
 // several functions for making assertions within tests.
@@ -19,6 +17,12 @@
   void name()
 
 bool passed;
+
+// Human readable names for ANSI escape codes
+const std::string kResetText = "\033[0m";
+const std::string kBoldText = "\033[1m";
+const std::string kRedText = "\033[31m";
+const std::string kGreenText = "\033[32m";
 
 // Manages a collection of tests, allowing them to be registered and run. The
 // `RunAll` method executes all registered tests and prints their results to the
