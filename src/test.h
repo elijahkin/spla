@@ -1,6 +1,5 @@
 #include <chrono>
-#include <format>
-#include <iostream>
+#include <print>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,12 +17,6 @@
 
 bool passed;
 
-// Human readable names for ANSI escape codes
-const std::string kResetText = "\033[0m";
-const std::string kBoldText = "\033[1m";
-const std::string kRedText = "\033[31m";
-const std::string kGreenText = "\033[32m";
-
 // Manages a collection of tests, allowing them to be registered and run. The
 // `RunAll` method executes all registered tests and prints their results to the
 // console, indicating whether each test passed or failed.
@@ -39,11 +32,12 @@ class TestSuite {
       auto begin = std::chrono::steady_clock::now();
       func();
       auto end = std::chrono::steady_clock::now();
-      std::cout << std::format(
-          "{:<20.20} {}{}{} in {}µs\n", name, kBoldText,
-          passed ? (kGreenText + "PASSED") : (kRedText + "FAILED"), kResetText,
+      auto micros =
           std::chrono::duration_cast<std::chrono::microseconds>(end - begin)
-              .count());
+              .count();
+      // Using ANSI escape codes to stylize the text
+      std::println("{:<20.20} \033[1m{}\033[0m in {}µs", name,
+                   (passed ? "\033[32mPASSED" : "\033[31mFAILED"), micros);
     }
   }
 

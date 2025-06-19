@@ -13,13 +13,11 @@ Diagnostics:
           performance*,
           portability*,
           readability*]
-    Remove: [cert-err58-cpp,
-             cppcoreguidelines-avoid-*,
+    Remove: [cppcoreguidelines-avoid-*,
              misc-definitions-in-headers,
              misc-use-internal-linkage,
              misc-use-anonymous-namespace,
              modernize-use-trailing-return-type,
-             modernize-use-nodiscard,
              readability-identifier-length,
              readability-magic-numbers]
     CheckOptions:
@@ -33,6 +31,7 @@ Diagnostics:
       readability-identifier-naming.FunctionCase: aNy_CasE
       readability-identifier-naming.GlobalConstantCase: CamelCase
       readability-identifier-naming.GlobalConstantPrefix: k
+      readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
       readability-identifier-naming.NamespaceCase: lower_case
       readability-identifier-naming.MemberConstantCase: CamelCase
       readability-identifier-naming.MemberConstantPrefix: k
