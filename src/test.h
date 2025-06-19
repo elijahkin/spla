@@ -29,12 +29,12 @@ const std::string kGreenText = "\033[32m";
 // console, indicating whether each test passed or failed.
 class TestSuite {
  public:
-  static void Register(const std::string& name, void (*func)()) {
+  static void Register(const std::string &name, void (*func)()) {
     tests_.emplace_back(name, func);
   }
 
   static void RunAll() {
-    for (const auto& [name, func] : tests_) {
+    for (const auto &[name, func] : tests_) {
       passed = true;
       auto begin = std::chrono::steady_clock::now();
       func();
