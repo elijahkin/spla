@@ -1,9 +1,9 @@
-#include "tensor.h"
+#include "tensor.hpp"
 
 #include <cmath>
 #include <numbers>
 
-#include "test.h"
+#include "test.hpp"
 
 TEST(VectorAbs) {
   auto a = spla::Tensor<int, 3>::zeros();

@@ -1,10 +1,10 @@
-CC = g++-15
+CC = clang++
 CFLAGS = -std=c++23 -O2 -Wall -Wextra -Wpedantic -Werror -fno-exceptions
 
 all: tensor_test
 
-tensor_test: src/tensor_test.cc
-	$(CC) $(CFLAGS) -o bin/tensor_test src/tensor_test.cc
+tensor_test: src/tensor_test.cpp
+	$(CC) $(CFLAGS) -o bin/tensor_test src/tensor_test.cpp
 
 clean:
 	rm -f bin/*
