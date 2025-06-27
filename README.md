@@ -1,5 +1,5 @@
 # SPLA
-SPLA is an open source library for sparse linear algebra computations aimed toward numerical solutions of partial differential equations. The fundamental object of computation is the `spla::Tensor`, which generalizes the notions of scalars (order-0), vectors (order-1), matrices (order-2), and higher order tensors. For example usage, see `src/tensor_test.cc`.
+SPLA is an open-source library for sparse linear algebra computations aimed toward numerical solutions of partial differential equations. The fundamental object of computation is the `spla::Tensor`, which generalizes the notions of scalars (order-0), vectors (order-1), matrices (order-2), and higher order tensors. For example usage, see `src/tensor_test.cc`.
 ## Work in Progress
 The outstanding work is split broadly into the following three categories.
 ### Functionality

@@ -49,7 +49,7 @@ class Tensor {
   // Constructors //
   //////////////////
 
-  Tensor(T default_value) : default_value_(default_value) {}
+  Tensor(T default_value) : default_value_(default_value) {}  // NOLINT
 
   template <Arithmetic OtherT>
   explicit Tensor(const Tensor<OtherT, shape...> &other)
@@ -97,33 +97,33 @@ class Tensor {
   // accidently written to `data_`.
   class SubscriptProxy {
    public:
-    SubscriptProxy(Tensor<T, shape...> &vec, Index idx)
+    SubscriptProxy(Tensor<T, shape...> *vec, Index idx)
         : vec_(vec), idx_(idx) {}
 
     // Handles tensor subscript assignment.
     SubscriptProxy &operator=(const T &val) {
-      vec_.data_[idx_] = val;
+      vec_->data_[idx_] = val;
       return *this;
     }
 
     // Casts a `SubscriptProxy` object to the entry type `T`. It searches for
     // the whether `idx_` is a key in `vec_.data_`. If so, it returns its
     // associated value, and `vec_.default_value_` otherwise.
-    operator T() const {
-      if (auto it = vec_.data_.find(idx_); it != vec_.data_.end()) {
+    operator T() const {  // NOLINT
+      if (auto it = vec_->data_.find(idx_); it != vec_->data_.end()) {
         return it->second;
       }
-      return vec_.default_value_;
+      return vec_->default_value_;
     }
 
    private:
-    Tensor<T, shape...> &vec_;
+    Tensor<T, shape...> *vec_;
     Index idx_;
   };
 
   template <typename... Args>
   SubscriptProxy operator[](Args... idx) {
-    return SubscriptProxy(*this, {static_cast<int64_t>(idx)...});
+    return SubscriptProxy(this, {static_cast<int64_t>(idx)...});
   }
 
   //////////////////////////////////////

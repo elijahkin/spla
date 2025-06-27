@@ -4,10 +4,7 @@
 #include <utility>
 #include <vector>
 
-// This file is a simple testing framework for C++, taking heavy inspiration
-// from Google Test. We first define the `TestSuite` class itself, and then
-// several functions for making assertions within tests.
-
+// Provides a conevient way to register tests into the suite.
 #define TEST(name)                                          \
   void name();                                              \
   static struct Register_##name {                           \
@@ -15,7 +12,7 @@
   } register_##name;                                        \
   void name()
 
-bool passed;
+static bool passed;
 
 // Manages a collection of tests, allowing them to be registered and run. The
 // `RunAll` method executes all registered tests and prints their results to the
@@ -35,16 +32,18 @@ class TestSuite {
       auto micros =
           std::chrono::duration_cast<std::chrono::microseconds>(end - begin)
               .count();
-      // Using ANSI escape codes to stylize the text
+      // Stylizes the text using ANSI escape codes.
       std::println("{:<20.20} \033[1m{}\033[0m in {}µs", name,
                    (passed ? "\033[32mPASSED" : "\033[31mFAILED"), micros);
     }
   }
 
  private:
-  static inline std::vector<std::pair<std::string, void (*)()>> tests_;
+  static inline std::vector<std::pair<std::string, void (*)()>>
+      tests_;  // NOLINT
 };
 
+// Make assertions within tests, taking heavy inspiration from Google Test.
 inline void EXPECT_TRUE(bool condition) { passed &= condition; }
 
 inline void EXPECT_FALSE(bool condition) { passed &= !condition; }
